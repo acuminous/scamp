@@ -4,10 +4,10 @@
 
 ## Connection Topologies
 
-Scamp allows you to choose your connection topology by providing a range of connection and channel pools. The most common topologies are as follows...
+Scamp allows you to choose your connection topology by providing a range of pluggable connection and channel sources. For example...
 
 
-### Dedicated connection with a dedicated channel
+#### Dedicated connection with a dedicated channel
       ┌─────────────────────────┐                                                  ┌─────────────────────────┐
       │                         │                    Connection                    │                         │
       │                         ├──────────────────────────────────────────────────┤                         │
@@ -20,7 +20,7 @@ Scamp allows you to choose your connection topology by providing a range of conn
       └─────────────────────────┘                                                  └─────────────────────────┘
 
 
-### Dedicated connection with a channel pool
+#### Dedicated connection with a channel pool
       ┌─────────────────────────┐                                                  ┌─────────────────────────┐
       │                         │                    Connection                    │                         │
       │                         ├──────────────────────────────────────────────────┤                         │
@@ -37,7 +37,7 @@ Scamp allows you to choose your connection topology by providing a range of conn
 
 
 
-### Connection pool with dedicated channels
+#### Connection pool with dedicated channels
       ┌─────────────────────────┐                   Connection 1                   ┌─────────────────────────┐
       │                         ├──────────────────────────────────────────────────┤                         │
       │                         │                                                  │                         │
@@ -53,38 +53,7 @@ Scamp allows you to choose your connection topology by providing a range of conn
       │                         ├──────────────────────────────────────────────────┤                         │
       └─────────────────────────┘                                                  └─────────────────────────┘
 
-
-### Connection pool with channel pools
-
-      ┌─────────────────────────┐                                                  ┌─────────────────────────┐
-      │                         │                   Connection 1                   │                         │
-      │                         ├──────────────────────────────────────────────────┤                         │
-      │                         │                                                  │                         │
-      │                         ╠════════════════════Channel 1═════════════════════╣                         │
-      │                         │                                                  │                         │
-      │                         │                                                  │                         │
-      │                         │                                                  │                         │
-      │                         ╠════════════════════Channel 2═════════════════════╣                         │
-      │                         │                                                  │                         │
-      │                         ├──────────────────────────────────────────────────┤                         │
-      │                         │                                                  │                         │
-      │        Producer         │                                                  │          VHost          │
-      │                         │                                                  │                         │
-      │                         │                   Connection 2                   │                         │
-      │                         ├──────────────────────────────────────────────────┤                         │
-      │                         │                                                  │                         │
-      │                         ╠════════════════════Channel 3═════════════════════╣                         │
-      │                         │                                                  │                         │
-      │                         │                                                  │                         │
-      │                         │                                                  │                         │
-      │                         ╠════════════════════Channel 4═════════════════════╣                         │
-      │                         │                                                  │                         │
-      │                         ├──────────────────────────────────────────────────┤                         │
-      │                         │                                                  │                         │
-      └─────────────────────────┘                                                  └─────────────────────────┘
-
-
-### Dedicated active/passive connection with dedicated channel
+#### Dedicated active/passive connection with dedicated channel
 
       ┌─────────────────────────┐                   Connection 1                   ┌─────────────────────────┐
       │                         ├──────────────────────────────────────────────────┤                         │
