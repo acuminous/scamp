@@ -67,3 +67,43 @@ Scamp allows you to choose your connection topology by providing a range of plug
       │                         │                                            │                         │
       │                         ├ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─│                         │
       └─────────────────────────┘                                            └─────────────────────────┘
+
+
+### Producers
+```js
+const connectionFactory = new SimpleConnectionFactory();
+const broker = new Broker({ connectionFactory, options: brokerOptions });
+const vhost = await broker.connect({ options: vhostOptions });
+const queue = await vhost.declareQueue({ options: queueOptions });
+const channelFactory = new SimpleChannelFactory();
+const producer = queue.getProducer({ channelFactory })
+  .setMessageId(uuid);
+  .useConfirmChannel(true)
+  .detectContentType(true)
+  .encryptContent('profile-1'})
+  .timeout(1000)
+ 
+return new Promise((resolve, reject) => {
+  producer.publish('hello world')
+    .on('success', message => {
+      resolve();
+    })
+    .on('returned', message => {
+      // Already resolved
+      console.warn(`Message was returned ${message.properties.messageId}`);
+    })
+    .on('error', (err, message) => {
+      reject(err);
+    })
+    .on('busy', (message) => {
+      // May want to apply back pressure to whatever is calling the publisher
+    })
+    .on('ready', () => {
+      // May want to relax back pressure
+    });
+}); 
+
+await producer.close();
+await vhost.disconnect();
+```
+
