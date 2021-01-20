@@ -77,11 +77,11 @@ const vhost = await broker.connect({ options: vhostOptions });
 const queue = await vhost.declareQueue({ options: queueOptions });
 const channelFactory = new SimpleChannelFactory();
 const producer = queue.getProducer({ channelFactory })
-  .setMessageId(uuid);
+  .setMessageId(uuid)
   .useConfirmChannel(true)
   .detectContentType(true)
   .encryptContent('profile-1'})
-  .timeout(1000)
+  .timeout(1000);
  
 await new Promise((resolve, reject) => {
   producer.publish('hello world')
