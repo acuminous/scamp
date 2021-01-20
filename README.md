@@ -83,7 +83,7 @@ const producer = queue.getProducer({ channelFactory })
   .encryptContent('profile-1'})
   .timeout(1000)
  
-return new Promise((resolve, reject) => {
+await new Promise((resolve, reject) => {
   producer.publish('hello world')
     .on('success', message => {
       resolve();
