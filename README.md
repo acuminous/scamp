@@ -1,7 +1,5 @@
 # scamp
 
-
-
 ## Connection Topologies
 
 Scamp allows you to choose your connection topology by providing a range of pluggable connection and channel sources. For example...
@@ -12,7 +10,7 @@ Scamp allows you to choose your connection topology by providing a range of plug
       │                         │                 Connection                 │                         │
       │                         ├────────────────────────────────────────────┤                         │
       │                         │                                            │                         │
-      │        Producer         ╠══════════════════Channel═══════════════════╣          VHost          │
+      │   Producer / Consumer   ╠══════════════════Channel═══════════════════╣          VHost          │
       │                         │                                            │                         │
       │                         ├────────────────────────────────────────────┤                         │
       │                         │                                            │                         │
@@ -61,7 +59,7 @@ Scamp allows you to choose your connection topology by providing a range of plug
       │                         ╠════════════════════════════════════════════╣         VHost 1         │
       │                         │                                            │                         │
       │                         ├────────────────────────────────────────────┤                         │
-      │        Producer         │                                            └─────────────────────────┘
+      │   Producer / Consumer   │                                            └─────────────────────────┘
       │                         │           Connection 2 (passive)           ┌─────────────────────────┐
       │                         ├ ─ ─ ─ ─ ─  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ │                         │
       │                         │                                            │                         │
