@@ -71,12 +71,12 @@ Scamp allows you to choose your connection topology by providing a range of plug
 
 ### Producers
 ```js
-const connectionFactory = new SimpleConnectionFactory();
-const broker = new Broker({ connectionFactory, options: brokerOptions });
+const connectionSource = new SimpleConnectionSource();
+const broker = new Broker({ connectionSource, options: brokerOptions });
 const vhost = await broker.connect({ options: vhostOptions });
 const queue = await vhost.declareQueue({ options: queueOptions });
-const channelFactory = new SimpleChannelFactory();
-const producer = queue.getProducer({ channelFactory })
+const channelSource = new SimpleChannelSource();
+const producer = queue.getProducer({ channelSource })
   .setMessageId(uuid)
   .useConfirmChannel(true)
   .detectContentType(true)
