@@ -196,7 +196,7 @@ await exchange3.bind(exchange4, { arguments: { format: 'pdf', type: 'report', 'x
 You can also unbind, but you must be careful to use binding keys which actually exist.
 ```js
 await queue.unbind(exchange { keys });
-await exchange.unbind(exchange2, { keys});
+await exchange.unbind(exchange2, { keys });
 ```
 
 
