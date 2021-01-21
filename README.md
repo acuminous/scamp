@@ -75,12 +75,13 @@ Exchanges are obtained from a Vhost using vhost.declareExchange. You can use the
 const exchange = await vhost.declareExchange({ 
   name: 'ex1', 
   type: 'topic', 
-  passive: true, 
+  passive: false, 
   arguments: { 
-    'x-dead-letter-exchange': 'dlx'
+    'x-dead-letter-exchange': 'dlx',
   },
 });
 ```
+
 #### Options
 | Option | Type | Required | Default | Notes |
 |--------|------|----------|---------|-------|
@@ -93,6 +94,31 @@ const exchange = await vhost.declareExchange({
 | alternateExchange | string | no | | An exchange to send messages to if this exchange can’t route them to any queues. |
 | arguments | object | no | | Use to specify custom RabbitMQ options, e.g. x-dead-letter-exchange |
 
+
+### Queues
+Like exchanges, queues are also obtained from a Vhost using vhost.declareQueue. You can use the `passive` option to determine whether the queue should be created if it doesn't already exist. Declaring a queue passively which does not already exist will result in an error. Attempting to redeclare a queue with different attributes will also result in an error. Once you have an instance of an queue you can create a [producer](#producers) and start publishing messages.
+
+
+```js
+const queue = await vhost.declareQueue({ 
+  name: 'q1', 
+  passive: false, 
+  arguments: { 
+    'x-message-ttl': 1000,
+  },
+});
+```
+
+#### Options
+| Option | Type | Required | Default | Notes |
+|--------|------|----------|---------|-------|
+| name   | string | yes | | The queue name |
+| passive | boolean | no | true | Set to false to create the queue if it does not already exist |
+| durable | boolean | no | true | If true, the queue will survive broker restarts, modulo the effects of exclusive and autoDelete |
+| exclusive | boolean | no | false | If true, scopes the queue to the connection. |
+| autoDelete | boolean | no | false | If true, the queue will be deleted when the number of consumers drops to zero. |
+| alternateExchange | string | no | | An exchange to send messages to if this exchange can’t route them to any queues. |
+| arguments | object | no | | Use to specify custom RabbitMQ options, e.g. x-dead-letter-exchange |
 
 ### Producers
 Producers are obtained from queues or exchanges. They require a channel source for obtaining channels. For example...
