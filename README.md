@@ -186,11 +186,14 @@ await queue.bind(exchange, { keys: ['a.b.c', 'x.y.#'] });
 ```
 Or bind two exchanges like this...
 ```js
-// Topic exchange
-await exchange1.bind(exchange2, { keys: ['a.b.c', 'x.y.#'] });
+// Fanout exchange
+await exchange1.bind(exchange2);
+
+// Topic or direct exchange
+await exchange1.bind(exchange2, { keys: ['a.b.c'] });
 
 // Header exchange
-await exchange3.bind(exchange4, { arguments: { format: 'pdf', type: 'report', 'x-match': 'all' } });
+await exchange1.bind(exchange2, { arguments: { format: 'pdf', type: 'report', 'x-match': 'all' } });
 ```
 
 You can also unbind, but you must be careful to use binding keys which actually exist.
