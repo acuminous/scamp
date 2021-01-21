@@ -71,8 +71,15 @@ Scamp allows you to choose your connection topology by providing a range of plug
 ### Exchanges
 Exchanges are obtained from a Vhost using vhost.declareExchange. You can use the `passive` option to determine whether the exchange should be created if it doesn't already exist. Declaring an exchange passively which does not already exist will result in an error. Attempting to redeclare an exchange with different attributes will also result in an error. Once you have an instance of an exchange you can create a [producer](#producers) and start publishing messages.
 
-```
-const exchange = await vhost.declareExchange({ name: 'ex1', type: 'topic', passive: true, arguments: { 'x-dead-letter-exchange': 'dlx' });
+```js
+const exchange = await vhost.declareExchange({ 
+  name: 'ex1', 
+  type: 'topic', 
+  passive: true, 
+  arguments: { 
+    'x-dead-letter-exchange': 'dlx'
+  },
+});
 ```
 #### Options
 | Option | Type | Required | Default | Notes |
