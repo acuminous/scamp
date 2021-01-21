@@ -10,7 +10,7 @@ Scamp allows you to choose your connection topology by providing a range of plug
       │                         │                 Connection                 │                         │
       │                         ├────────────────────────────────────────────┤                         │
       │                         │                                            │                         │
-      │   Producer / Consumer   ╠══════════════════Channel═══════════════════╣          VHost          │
+      │   Producer / Consumer   ╠══════════════════Channel═══════════════════╣      Virtual Host       │
       │                         │                                            │                         │
       │                         ├────────────────────────────────────────────┤                         │
       │                         │                                            │                         │
@@ -25,7 +25,7 @@ Scamp allows you to choose your connection topology by providing a range of plug
       │                         │                                            │                         │
       │                         ╠═════════════════Channel 1══════════════════╣                         │
       │                         │                                            │                         │
-      │        Producer         │                                            │          VHost          │
+      │        Producer         │                                            │      Virtual Host       │
       │                         │                                            │                         │
       │                         ╠═════════════════Channel 2══════════════════╣                         │
       │                         │                                            │                         │
@@ -42,7 +42,7 @@ Scamp allows you to choose your connection topology by providing a range of plug
       │                         ╠════════════════Channel 1═══════════════════╣                         │
       │                         │                                            │                         │
       │                         ├────────────────────────────────────────────┤                         │
-      │        Producer         │                                            │          VHost          │
+      │        Producer         │                                            │      Virtual Host       │
       │                         │                Connection 2                │                         │
       │                         ├────────────────────────────────────────────┤                         │
       │                         │                                            │                         │
@@ -56,20 +56,82 @@ Scamp allows you to choose your connection topology by providing a range of plug
       ┌─────────────────────────┐                Connection 1                ┌─────────────────────────┐
       │                         ├────────────────────────────────────────────┤                         │
       │                         │                 Channel 1                  │                         │
-      │                         ╠════════════════════════════════════════════╣         VHost 1         │
+      │                         ╠════════════════════════════════════════════╣      Virtual Host       │
       │                         │                                            │                         │
       │                         ├────────────────────────────────────────────┤                         │
       │   Producer / Consumer   │                                            └─────────────────────────┘
       │                         │           Connection 2 (passive)           ┌─────────────────────────┐
       │                         ├ ─ ─ ─ ─ ─  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ │                         │
       │                         │                                            │                         │
-      │                         ├ ─ ─ ─ ─ ─ ─ Channel 2 (passive) ─ ─ ─ ─ ─ ─│         VHost 2         │
+      │                         ├ ─ ─ ─ ─ ─ ─ Channel 2 (passive) ─ ─ ─ ─ ─ ─│      Virtual Host       │
       │                         │                                            │                         │
       │                         ├ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─│                         │
       └─────────────────────────┘                                            └─────────────────────────┘
 
+### Broker
+The broker is a container for one or more virtual hosts and repository for common config such as encryption profiles and content parsers.
+
+```js
+const broker = new Broker({
+  encryption: {
+    'profile-1': {
+      key: 'blah-blah-blah',
+      algorithm: 'aes256',
+      ivLength: 16,
+    }
+  },
+  parsers: {
+    'application/json': new JsonParser(),
+    'application/xml', new XmlParser(),
+  }
+});
+
+You can shutdown all vhosts controlled by the broker using `broker.shutdown`. You can also `nuke` all managed exchanges and queues, and `purge` all queues of messages, which is useful for testing. e.g.
+```js
+beforeEach(async () => {
+  await broker.purge();
+})
+afterAll(async () => {
+  await broker.nuke();
+})
+```
+
+### Vhosts
+Virtual Hosts are obtained by connecting to a broker.
+
+```js
+const connectionSource = new SimpleConnectionSource();
+const vhost = await broker.connect({ 
+  connectionSource, 
+  options: {
+    host: 'localhost',
+    port: 5672,
+    name: 'vh1',
+    user: 'bob',
+    password: 'secret',
+    params: {
+      heartbeat: 10,
+    },
+    socket: {
+      timeout: 10000,
+    }
+  }
+});
+```
+
+#### Options
+| Option | Type | Required | Default | Notes |
+|--------|------|----------|---------|-------|
+| host   | string | yes | localhost | The host to connect to |
+| port   | number | yes | 5672 | The port to connect to |
+| name | string | yes | / | The name of the virtual host. Use / for RabbitMQ's default virtual host |
+| user | string | yes | guest | The username to connect with. |
+| password | string | yes | password | The password to connect with. |
+| params | object | no |  | For specifying RabbitMQ [query params](https://www.rabbitmq.com/uri-query-parameters.html). You should consider setting a heartbeat, channel_max and connection_timeout |
+| socket | object | no | { clientProperties: { name: 'scamp', version: version } } | For specifying underlying socket options. |
+
 ### Exchanges
-Exchanges are obtained from a Vhost using vhost.declareExchange. You can use the `passive` option to determine whether the exchange should be created if it doesn't already exist. Declaring an exchange passively which does not already exist will result in an error. Attempting to redeclare an exchange with different attributes will also result in an error. Once you have an instance of an exchange you can create a [producer](#producers) and start publishing messages.
+Exchanges are obtained from a virtual host using vhost.declareExchange. You can use the `passive` option to determine whether the exchange should be created if it doesn't already exist. Declaring an exchange passively which does not already exist will result in an error. Attempting to redeclare an exchange with different attributes will also result in an error. Once you have an instance of an exchange you can create a [producer](#producers) and start publishing messages.
 
 ```js
 const exchange = await vhost.declareExchange({ 
@@ -96,7 +158,7 @@ const exchange = await vhost.declareExchange({
 
 
 ### Queues
-Like exchanges, queues are also obtained from a Vhost using vhost.declareQueue. You can use the `passive` option to determine whether the queue should be created if it doesn't already exist. Declaring a queue passively which does not already exist will result in an error. Attempting to redeclare a queue with different attributes will also result in an error. Once you have an instance of an queue you can create a [producer](#producers) and start publishing messages.
+Like exchanges, queues are also obtained from a virtual host using vhost.declareQueue. You can use the `passive` option to determine whether the queue should be created if it doesn't already exist. Declaring a queue passively which does not already exist will result in an error. Attempting to redeclare a queue with different attributes will also result in an error. Once you have an instance of an queue you can create a [producer](#producers) and start publishing messages.
 
 
 ```js
@@ -153,5 +215,24 @@ await new Promise((resolve, reject) => {
 
 await producer.close();
 await vhost.disconnect();
+```
+
+### Consumers
+Consumers are obtained from a queue. They require a channel source for obtaining channels. For example...
+
+```js
+const channelSource = new SimpleChannelSource();
+const consumer = queue.createConsumer({ channelSource })
+  .setPrefetch(10)
+  .setContentType('application/xml')  
+  .decryptContent(true)
+  .parseContent(true);
+
+// The consumer will only start consuming messages once the on message handler is registered
+consumer.on('message', (message) => {
+  await message.ack();
+}).on('error', (err, message) => {
+  console.error(err);
+})
 ```
 
