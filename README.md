@@ -96,7 +96,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  await broker.purge(/.*/);
+  await broker.purge();
 });
 
 afterAll(async () => {
