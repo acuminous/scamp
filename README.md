@@ -182,8 +182,16 @@ const queue = await vhost.declareQueue({
 ### Binding
 You can bind queues to exchanges as follows...
 ```js
-await queue.bind(exchange, { keys: ['a.b.c', 'x.y.#'] });
+// Fanout exchange
+await queue.bind(exchange);
+
+// Topic or direct exchange
+await queue.bind(exchange, { keys: ['a.b.c'] });
+
+// Headers exchange
+await queue.bind(exchange, { arguments { format: 'pdf', type: 'report', 'x-match': 'all' } });
 ```
+
 Or bind two exchanges like this...
 ```js
 // Fanout exchange
