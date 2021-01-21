@@ -179,6 +179,27 @@ const queue = await vhost.declareQueue({
 });
 ```
 
+### Binding
+You can bind queues to exchanges as follows...
+```js
+await queue.bind(exchange, { keys: ['a.b.c', 'x.y.#'] });
+```
+Or bind two exchanges like this...
+```js
+// Topic exchange
+await exchange1.bind(exchange2, { keys: ['a.b.c', 'x.y.#'] });
+
+// Header exchange
+await exchange3.bind(exchange4, { arguments: { format: 'pdf', type: 'report', 'x-match': 'all' } });
+```
+
+You can also unbind, but you must be careful to use binding keys which actually exist.
+```js
+await queue.unbind(exchange { keys });
+await exchange.unbind(exchange2, { keys});
+```
+
+
 #### Options
 | Option | Type | Required | Default | Notes |
 |--------|------|----------|---------|-------|
