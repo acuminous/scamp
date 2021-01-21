@@ -230,6 +230,7 @@ const consumer = queue.createConsumer({ channelSource })
 
 // The consumer will only start consuming messages once the on message handler is registered
 consumer.on('message', (message) => {
+  console.log(message.content);
   await message.ack();
 }).on('error', (err, message) => {
   console.error(err);
