@@ -85,15 +85,23 @@ const broker = new Broker({
     'application/xml', new XmlParser(),
   }
 });
+```
 
-You can shutdown all vhosts controlled by the broker using `broker.shutdown`. You can also `nuke` all managed exchanges and queues, and `purge` all queues of messages, which is useful for testing. e.g.
+You can shutdown all vhosts managed by the broker using `broker.shutdown`. You can also `nuke`, or `purge` matching queues and exchanges, which is useful for testing. e.g.
 ```js
+let broker;
+
+beforeAll(async () => {
+  broker = await initBroker();
+});
+
 beforeEach(async () => {
-  await broker.purge();
-})
+  await broker.purge(/.*/);
+});
+
 afterAll(async () => {
-  await broker.nuke();
-})
+  await broker.nuke(/^test_/);
+});
 ```
 
 ### Vhosts
