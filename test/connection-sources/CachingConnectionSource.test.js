@@ -1,4 +1,4 @@
-const { strictEqual: eq } = require('assert');
+const { strictEqual: eq, rejects } = require('assert');
 const { describe, it } = require('zunit');
 const { EventEmitter } = require('events');
 const { CachingConnectionSource } = require('../..');
@@ -53,6 +53,34 @@ describe('CachingConnectionSource', () => {
     });
   });
 
+  describe('Close', async () => {
+
+    it('should close cached connection', async () => {
+      const stubConnectionSource = new ConnectionSourceStub();
+      const connectionSource = new CachingConnectionSource({ connectionSource: stubConnectionSource });
+
+      const connection = await connectionSource.getConnection();
+
+      await connectionSource.close();
+
+      eq(connection.x_scamp.open, false);
+    });
+
+    it('should reject attempts to get a connection when closed', async () => {
+      const stubConnectionSource = new ConnectionSourceStub();
+      const connectionSource = new CachingConnectionSource({ connectionSource: stubConnectionSource });
+      await connectionSource.close();
+
+      await rejects(() => connectionSource.getConnection(), /The connection source is closed/);
+    });
+
+    it('should tolerate repeated closures', async () => {
+      const stubConnectionSource = new ConnectionSourceStub();
+      const connectionSource = new CachingConnectionSource({ connectionSource: stubConnectionSource });
+      await connectionSource.close();
+      await connectionSource.close();
+    });
+  });
 });
 
 class ConnectionSourceStub {
@@ -61,6 +89,7 @@ class ConnectionSourceStub {
   }
 
   async getConnection() {
-    return Object.assign(new EventEmitter(), { x_scamp: { id: this.id++ } });
+    const x_scamp = { id: this.id++, type: 'confirm', open: true };
+    return Object.assign(new EventEmitter(), { x_scamp }, { close: async () => x_scamp.open = false });
   }
 }

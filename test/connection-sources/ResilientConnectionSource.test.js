@@ -5,49 +5,80 @@ const { ResilientConnectionSource } = require('../..');
 
 describe('ResilientConnectionSource', () => {
 
-  it('should repeatedly attempt to acquire a connection using the default retry strategy', async () => {
-    const connectionSourceStub = new ConnectionSourceStub(3);
-    const connectionSource = new ResilientConnectionSource({ connectionSource: connectionSourceStub });
+  describe('getConnection', () => {
 
-    const before = Date.now();
-    const connection = await connectionSource.getConnection();
-    const after = Date.now();
+    it('should repeatedly attempt to acquire a connection using the default retry strategy', async () => {
+      const connectionSourceStub = new ConnectionSourceStub(3);
+      const connectionSource = new ResilientConnectionSource({ connectionSource: connectionSourceStub });
 
-    ok(connection);
+      const before = Date.now();
+      const connection = await connectionSource.getConnection();
+      const after = Date.now();
 
-    const duration = after - before;
-    ok(duration >= 1050);
-    ok(duration <= 1750);
+      ok(connection);
+
+      const duration = after - before;
+      ok(duration >= 1050);
+      ok(duration <= 1750);
+    });
+
+    it('should repeatedly attempt to acquire a connection using a custom retry strategy', async () => {
+      const connectionSourceStub = new ConnectionSourceStub(3);
+      const retryStrategy = () => 100;
+      const connectionSource = new ResilientConnectionSource({ connectionSource: connectionSourceStub, retryStrategy });
+
+      const before = Date.now();
+      const connection = await connectionSource.getConnection();
+      const after = Date.now();
+
+      ok(connection);
+
+      const duration = after - before;
+      ok(duration >= 300);
+      ok(duration <= 400);
+    });
+
+
+    it('should give up attempting to acquire a connection when retry stratgey returns a negative', async () => {
+      const connectionSourceStub = new ConnectionSourceStub(3);
+      const retryStrategy = () => -1;
+      const connectionSource = new ResilientConnectionSource({ connectionSource: connectionSourceStub, retryStrategy });
+
+      await rejects(() => connectionSource.getConnection(), /Oh Noes/);
+    });
   });
 
-  it('should repeatedly attempt to acquire a connection using a custom retry strategy', async () => {
-    const connectionSourceStub = new ConnectionSourceStub(3);
-    const retryStrategy = () => 100;
-    const connectionSource = new ResilientConnectionSource({ connectionSource: connectionSourceStub, retryStrategy });
+  describe('Close', async () => {
 
-    const before = Date.now();
-    const connection = await connectionSource.getConnection();
-    const after = Date.now();
+    it('should cancel inflight retry attempts', async () => {
+      const connectionSourceStub = new ConnectionSourceStub();
+      const retryStrategy = () => 100;
+      const connectionSource = new ResilientConnectionSource({ connectionSource: connectionSourceStub, retryStrategy });
 
-    ok(connection);
+      setTimeout(() => connectionSource.close(), 200);
+      await rejects(() => connectionSource.getConnection(), /The connection source is closed/);
+    });
 
-    const duration = after - before;
-    ok(duration >= 300);
-    ok(duration <= 400);
-  });
+    it('should reject attempts to get a connection when closed', async () => {
+      const connectionSourceStub = new ConnectionSourceStub();
+      const connectionSource = new ResilientConnectionSource({ connectionSource: connectionSourceStub });
 
+      await connectionSource.close();
 
-  it('should give up attempting to acquire a connection when retry stratgey returns a negative', async () => {
-    const connectionSourceStub = new ConnectionSourceStub(3);
-    const retryStrategy = () => -1;
-    const connectionSource = new ResilientConnectionSource({ connectionSource: connectionSourceStub, retryStrategy });
+      await rejects(() => connectionSource.getConnection(), /The connection source is closed/);
+    });
 
-    await rejects(() => connectionSource.getConnection(), /Oh Noes/);
+    it('should tolerate repeated closures', async () => {
+      const connectionSourceStub = new ConnectionSourceStub();
+      const connectionSource = new ResilientConnectionSource({ connectionSource: connectionSourceStub });
+      await connectionSource.close();
+      await connectionSource.close();
+    });
   });
 });
 
 class ConnectionSourceStub {
-  constructor(attempts) {
+  constructor(attempts = 100) {
     this.attempts = attempts;
     this.attempt = 0;
   }

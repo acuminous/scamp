@@ -1,4 +1,4 @@
-const { strictEqual: eq } = require('assert');
+const { strictEqual: eq, rejects } = require('assert');
 const { beforeEach, describe, it } = require('zunit');
 const { EventEmitter } = require('events');
 const ScampEvents = require('../../lib/ScampEvents');
@@ -43,16 +43,14 @@ describe('AmqplibConnectionSource', () => {
       const channel2 = await channelSource.getConfirmChannel();
       eq(channel2.x_scamp.id, 'amqp://guest@localhost:5672/?1-2');
     });
-
   });
 
   describe('Lost Channels', () => {
 
     it('should emit a lost event on channel close', async () => {
-      const channelSource = new AmqplibChannelSource({ connectionSource, decorator });
-      const channel = await channelSource.getConfirmChannel();
       let events = 0;
-
+      const channelSource = new AmqplibChannelSource({ connectionSource, decorator });
+      const channel = await channelSource.getChannel();
       channel.on(ScampEvents.LOST, () => events++);
 
       channel.emit('close');
@@ -61,10 +59,9 @@ describe('AmqplibConnectionSource', () => {
     });
 
     it('should emit a lost event on connection error', async () => {
-      const channelSource = new AmqplibChannelSource({ connectionSource, decorator });
-      const channel = await channelSource.getConfirmChannel();
       let events = 0;
-
+      const channelSource = new AmqplibChannelSource({ connectionSource, decorator });
+      const channel = await channelSource.getChannel();
       channel.on(ScampEvents.LOST, () => events++);
 
       channel.emit('error');
@@ -72,11 +69,22 @@ describe('AmqplibConnectionSource', () => {
       eq(events, 1);
     });
 
-    it('should only emit one lost event', async () => {
-      const channelSource = new AmqplibChannelSource({ connectionSource, decorator });
-      const channel = await channelSource.getConfirmChannel();
+    it('should not emit a lost event when the channel source is closed', async () => {
       let events = 0;
+      const channelSource = new AmqplibChannelSource({ connectionSource, decorator });
+      const channel = await channelSource.getChannel();
+      channel.on(ScampEvents.LOST, () => events++);
+      await channelSource.close();
 
+      channel.emit('close');
+
+      eq(events, 0);
+    });
+
+    it('should only emit one lost event', async () => {
+      let events = 0;
+      const channelSource = new AmqplibChannelSource({ connectionSource, decorator });
+      const channel = await channelSource.getChannel();
       channel.on(ScampEvents.LOST, () => events++);
       channel.on('error', () => {});
 
@@ -86,9 +94,30 @@ describe('AmqplibConnectionSource', () => {
       channel.emit('close');
 
       eq(events, 1);
+    });
+  });
 
+  describe('Close', async () => {
+
+    it('should reject attempts to get a regular channel when closed', async () => {
+      const channelSource = new AmqplibChannelSource({ connectionSource, decorator });
+      await channelSource.close();
+
+      await rejects(() => channelSource.getChannel(), /The channel source is closed/);
     });
 
+    it('should reject attempts to get a confirm channel when closed', async () => {
+      const channelSource = new AmqplibChannelSource({ connectionSource, decorator });
+      await channelSource.close();
+
+      await rejects(() => channelSource.getConfirmChannel(), /The channel source is closed/);
+    });
+
+    it('should tolerate repeated closures', async () => {
+      const channelSource = new AmqplibChannelSource({ connectionSource, decorator });
+      await channelSource.close();
+      await channelSource.close();
+    });
   });
 });
 

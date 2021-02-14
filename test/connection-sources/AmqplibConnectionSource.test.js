@@ -1,4 +1,4 @@
-const { strictEqual: eq } = require('assert');
+const { strictEqual: eq, rejects } = require('assert');
 const { beforeEach, describe, it } = require('zunit');
 const { EventEmitter } = require('events');
 const ScampEvents = require('../../lib/ScampEvents');
@@ -64,10 +64,9 @@ describe('AmqplibConnectionSource', () => {
     });
 
     it('should emit a lost event on connection error', async () => {
+      let events = 0;
       const connectionSource = new AmqplibConnectionSource({ amqplib, decorator });
       const connection = await connectionSource.getConnection();
-      let events = 0;
-
       connection.on(ScampEvents.LOST, () => events++);
 
       connection.emit('error', new Error('Oh Noes'));
@@ -76,10 +75,9 @@ describe('AmqplibConnectionSource', () => {
     });
 
     it('should only emit one lost event', async () => {
+      let events = 0;
       const connectionSource = new AmqplibConnectionSource({ amqplib, decorator });
       const connection = await connectionSource.getConnection();
-      let events = 0;
-
       connection.on(ScampEvents.LOST, () => events++);
       connection.on('error', () => {});
 
@@ -89,7 +87,18 @@ describe('AmqplibConnectionSource', () => {
       connection.emit('close');
 
       eq(events, 1);
+    });
 
+    it('should not emit a lost event when the connection source is closed', async () => {
+      let events = 0;
+      const connectionSource = new AmqplibConnectionSource({ amqplib, decorator });
+      const connection = await connectionSource.getConnection();
+      connection.on(ScampEvents.LOST, () => events++);
+      await connectionSource.close();
+
+      connection.emit('close');
+
+      eq(events, 0);
     });
   });
 
@@ -104,6 +113,22 @@ describe('AmqplibConnectionSource', () => {
       connection.emit('close');
 
       eq(events, 1);
+    });
+  });
+
+  describe('Close', async () => {
+
+    it('should reject attempts to get a connection when closed', async () => {
+      const connectionSource = new AmqplibConnectionSource({ amqplib, decorator });
+      await connectionSource.close();
+
+      await rejects(() => connectionSource.getConnection(), /The connection source is closed/);
+    });
+
+    it('should tolerate repeated closures', async () => {
+      const connectionSource = new AmqplibConnectionSource({ amqplib, decorator });
+      await connectionSource.close();
+      await connectionSource.close();
     });
   });
 });
