@@ -1,15 +1,15 @@
 const { strictEqual: eq, rejects } = require('assert');
 const { describe, it } = require('zunit');
 const { EventEmitter } = require('events');
-const { CachingConnectionSource } = require('../..');
+const { StickyConnectionSource } = require('../..');
 const ScampEvents = require('../../lib/ScampEvents');
 
-describe('CachingConnectionSource', () => {
+describe('StickyConnectionSource', () => {
 
   describe('getConnection', () => {
     it('should acquire a new connection when the cache is empty', async () => {
       const stubConnectionSource = new ConnectionSourceStub();
-      const connectionSource = new CachingConnectionSource({ connectionSource: stubConnectionSource });
+      const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
 
       const connection = await connectionSource.getConnection();
 
@@ -18,7 +18,7 @@ describe('CachingConnectionSource', () => {
 
     it('should reuse the existing connection when the cache is primed', async () => {
       const stubConnectionSource = new ConnectionSourceStub();
-      const connectionSource = new CachingConnectionSource({ connectionSource: stubConnectionSource });
+      const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
 
       const connection1 = await connectionSource.getConnection();
       const connection2 = await connectionSource.getConnection();
@@ -29,7 +29,7 @@ describe('CachingConnectionSource', () => {
 
     it('should acquire a new connection after loss', async () => {
       const stubConnectionSource = new ConnectionSourceStub();
-      const connectionSource = new CachingConnectionSource({ connectionSource: stubConnectionSource });
+      const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
 
       const connection1 = await connectionSource.getConnection();
       connection1.emit(ScampEvents.LOST);
@@ -42,7 +42,7 @@ describe('CachingConnectionSource', () => {
 
     it('should synchronise new connection acquisition', async () => {
       const stubConnectionSource = new ConnectionSourceStub();
-      const connectionSource = new CachingConnectionSource({ connectionSource: stubConnectionSource });
+      const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
 
       const connection1 = await connectionSource.getConnection();
       eq(connection1.x_scamp.id, 1);
@@ -59,7 +59,7 @@ describe('CachingConnectionSource', () => {
 
     it('should close cached connection', async () => {
       const stubConnectionSource = new ConnectionSourceStub();
-      const connectionSource = new CachingConnectionSource({ connectionSource: stubConnectionSource });
+      const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
 
       const connection = await connectionSource.getConnection();
 
@@ -70,7 +70,7 @@ describe('CachingConnectionSource', () => {
 
     it('should reject attempts to get a connection when closed', async () => {
       const stubConnectionSource = new ConnectionSourceStub();
-      const connectionSource = new CachingConnectionSource({ connectionSource: stubConnectionSource });
+      const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
       await connectionSource.close();
 
       await rejects(() => connectionSource.getConnection(), /The connection source is closed/);
@@ -78,7 +78,7 @@ describe('CachingConnectionSource', () => {
 
     it('should tolerate repeated closures', async () => {
       const stubConnectionSource = new ConnectionSourceStub();
-      const connectionSource = new CachingConnectionSource({ connectionSource: stubConnectionSource });
+      const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
       await connectionSource.close();
       await connectionSource.close();
     });

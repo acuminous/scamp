@@ -3,7 +3,7 @@ const { beforeEach, describe, it } = require('zunit');
 const { EventEmitter } = require('events');
 const ScampEvents = require('../../lib/ScampEvents');
 const { AmqplibChannelSource, AmqplibConnectionSource, ConnectionDecorator, ChannelDecorator, Counter } = require('../..');
-const { CachingConnectionSource } = require('../../lib/connection-sources');
+const { StickyConnectionSource } = require('../../lib/connection-sources');
 
 describe('AmqplibConnectionSource', () => {
 
@@ -14,7 +14,7 @@ describe('AmqplibConnectionSource', () => {
     const amqplib = new AmqplibStub();
     const connectionDecorator = new ConnectionDecorator({ counter: new Counter() });
     const amqplibConnectionSource = new AmqplibConnectionSource({ amqplib, decorator: connectionDecorator });
-    connectionSource = new CachingConnectionSource({ connectionSource: amqplibConnectionSource });
+    connectionSource = new StickyConnectionSource({ connectionSource: amqplibConnectionSource });
     decorator = new ChannelDecorator({ counter: new Counter });
   });
 
