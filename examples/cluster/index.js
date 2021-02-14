@@ -23,7 +23,7 @@ const consumerChannelSource = createCachingChannelSource({ connectionSource: clu
 setInterval(() => {}, 600000);
 
 function createClusterConnectionSource() {
-  const ports = [ 5672, 5673, 5673 ];
+  const ports = [ 5672, 5673, 5674 ];
   const connectionSources = shuffle(ports).map(port => new AmqplibConnectionSource({ amqplib, params: { port } })
     .registerConnectionListener('error', console.error));
   const multiConnectionSource = new MultiConnectionSource({ connectionSources });
