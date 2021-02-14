@@ -43,6 +43,7 @@ async function createTopology(connectionSource) {
   const channel = await channelSource.getChannel();
   await channel.assertQueue('test');
   await channel.close();
+  await channel.connection.close();
 }
 
 async function produce(channelSource) {
