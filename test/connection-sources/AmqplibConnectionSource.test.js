@@ -91,7 +91,20 @@ describe('AmqplibConnectionSource', () => {
       eq(events, 1);
 
     });
+  });
 
+  describe('Custom Listeners', () => {
+    it('should support custom connection event listeners', async () => {
+      let events = 0;
+
+      const connectionSource = new AmqplibConnectionSource({ amqplib, decorator });
+      connectionSource.registerConnectionListener('close', () => events++);
+      const connection = await connectionSource.getConnection();
+
+      connection.emit('close');
+
+      eq(events, 1);
+    });
   });
 });
 

@@ -14,7 +14,7 @@ describe('CachingChannelSource', () => {
 
       const channel = await channelSource.getChannel();
 
-      eq(channel.id, 1);
+      eq(channel.x_scamp.id, 1);
     });
 
     it('should reuse the existing channel when the cache is primed', async () => {
@@ -24,8 +24,8 @@ describe('CachingChannelSource', () => {
       const channel1 = await channelSource.getChannel();
       const channel2 = await channelSource.getChannel();
 
-      eq(channel1.id, 1);
-      eq(channel2.id, 1);
+      eq(channel1.x_scamp.id, 1);
+      eq(channel2.x_scamp.id, 1);
     });
 
     it('should acquire a new channel after loss', async () => {
@@ -37,8 +37,8 @@ describe('CachingChannelSource', () => {
 
       const channel2 = await channelSource.getChannel();
 
-      eq(channel1.id, 1);
-      eq(channel2.id, 2);
+      eq(channel1.x_scamp.id, 1);
+      eq(channel2.x_scamp.id, 2);
     });
 
     it('should synchronise new channel acquisition', async () => {
@@ -46,19 +46,17 @@ describe('CachingChannelSource', () => {
       const channelSource = new CachingChannelSource({ channelSource: stubChannelSource });
 
       const channel1 = await channelSource.getChannel();
-      eq(channel1.id, 1);
+      eq(channel1.x_scamp.id, 1);
       channel1.emit(ScampEvents.LOST);
 
       const connections = await Promise.all(new Array(100).fill().map(() => channelSource.getChannel()));
       connections.forEach(channel2 => {
-        eq(channel2.id, 2);
+        eq(channel2.x_scamp.id, 2);
       });
     });
 
   });
 });
-
-
 
 class ChannelSourceStub {
   constructor() {
@@ -66,6 +64,6 @@ class ChannelSourceStub {
   }
 
   async getChannel() {
-    return Object.assign(new EventEmitter(), { id: this.id++ });
+    return Object.assign(new EventEmitter(), { x_scamp: { id: this.id++ } });
   }
 }

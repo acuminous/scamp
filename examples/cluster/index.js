@@ -4,49 +4,56 @@ const amqplib = require('amqplib');
 const { shuffle } = require('d3');
 const { AmqplibConnectionSource, MultiConnectionSource, CachingConnectionSource, CachingChannelSource } = require('../..');
 const { AmqplibChannelSource } = require('../../lib/channel-sources');
+const { ResilientConnectionSource } = require('../../lib/connection-sources');
 const ScampEvents = require('../../lib/ScampEvents');
 
-const multiConnectionSource = createMultiConnectionSource();
-const producerChannelSource = createCachingChannelSource({ connectionSource: multiConnectionSource });
-const consumerChannelSource = createCachingChannelSource({ connectionSource: multiConnectionSource });
+const clusterConnectionSource = createClusterConnectionSource();
+const producerChannelSource = createCachingChannelSource({ connectionSource: clusterConnectionSource });
+const consumerChannelSource = createCachingChannelSource({ connectionSource: clusterConnectionSource });
 
 (async () => {
   try {
+    await createTopology(clusterConnectionSource);
     produce(producerChannelSource);
     consume(consumerChannelSource);
   } catch (err) {
     console.error(err);
   }
 })();
+setInterval(() => {}, 600000);
 
-function createMultiConnectionSource() {
-  const node1 = new AmqplibConnectionSource({ amqplib, params: { port: 5672 } });
-  const node2 = new AmqplibConnectionSource({ amqplib, params: { port: 5673 } });
-  const node3 = new AmqplibConnectionSource({ amqplib, params: { port: 5674 } });
-  return new MultiConnectionSource({ connectionSources: shuffle([ node1, node2, node3 ]) });
+function createClusterConnectionSource() {
+  const ports = [ 5672, 5673, 5673 ];
+  const connectionSources = shuffle(ports).map(port => new AmqplibConnectionSource({ amqplib, params: { port } })
+    .registerConnectionListener('error', console.error));
+  const multiConnectionSource = new MultiConnectionSource({ connectionSources });
+  return new ResilientConnectionSource({ connectionSource: multiConnectionSource });
 }
 
 function createCachingChannelSource({ connectionSource }) {
   const cachingConnectionSource = new CachingConnectionSource({ connectionSource });
-  const amqplibChannelSource = new AmqplibChannelSource({ connectionSource: cachingConnectionSource });
+  const amqplibChannelSource = new AmqplibChannelSource({ connectionSource: cachingConnectionSource })
+    .registerChannelListener('error', console.error);
   return new CachingChannelSource({ channelSource: amqplibChannelSource });
 }
 
-async function produce(producerChannelSource) {
-  const channel = await producerChannelSource.getChannel();
-  channel.on('error', console.error);
-
+async function createTopology(connectionSource) {
+  const channelSource = new AmqplibChannelSource({ connectionSource })
+    .registerChannelListener('error', console.error);
+  const channel = await channelSource.getChannel();
   await channel.assertQueue('test');
-
-  setInterval(async () => channel.sendToQueue('test', Buffer.from('message')), 1000).unref();
+  await channel.close();
 }
 
-async function consume(consumerChannelSource) {
-  const channel = await consumerChannelSource.getChannel();
-  channel.on('error', console.error);
+async function produce(channelSource) {
+  setInterval(async () => {
+    const channel = await channelSource.getChannel();
+    channel.sendToQueue('test', Buffer.from(new Date().toString()));
+  }, 1000).unref();
+}
 
-  await channel.assertQueue('test');
-
+async function consume(channelSource) {
+  const channel = await channelSource.getChannel();
   const consumerTag = await channel.consume('test', async (message) => {
     if (message === null) {
       await channel.cancel(consumerTag);
@@ -54,9 +61,9 @@ async function consume(consumerChannelSource) {
     }
 
     const content = message.content.toString();
-    console.log(content);
+    console.log('>>>', content);
     await channel.ack(message);
   });
 
-  channel.once(ScampEvents.LOST, () => consume(consumerChannelSource));
+  channel.once(ScampEvents.LOST, () => consume(channelSource));
 }

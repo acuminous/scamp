@@ -1,19 +1,5 @@
 # scamp
 
-## TL;DR
-
-```js
-const { shuffle } = require('d3');
-const { AmqplibConnectionSource, MultiConnectionSource, CachingConnectionSource } = require('scamp');
-
-const node1 = new AmqplibConnectionSource({ hostname: 'node1.example.com' });
-const node2 = new AmqplibConnectionSource({ hostname: 'node2.example.com' });
-const node3 = new AmqplibConnectionSource({ hostname: 'node3.example.com' });
-const multiConnectionSource = new MultiConnectionSource({ connectionSources: shuffle([ node1, node2, node3 ]) });
-const connectionSource = new CachingConnectionSource({ connectionSource: multiConnectionSource });
-```
-
-
 ## Connection Topologies
 
 Scamp allows you to choose your connection topology by providing a range of pluggable connection and channel sources. For example...
