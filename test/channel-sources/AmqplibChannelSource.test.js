@@ -1,8 +1,7 @@
 const { strictEqual: eq, rejects } = require('assert');
 const { beforeEach, describe, it } = require('zunit');
 const { EventEmitter } = require('events');
-const ScampEvents = require('../../lib/ScampEvents');
-const { AmqplibChannelSource, AmqplibConnectionSource, ConnectionDecorator, ChannelDecorator, Counter } = require('../..');
+const { AmqplibChannelSource, AmqplibConnectionSource, ConnectionDecorator, ChannelDecorator, Counter, ScampEvent } = require('../..');
 const { StickyConnectionSource } = require('../../lib/connection-sources');
 
 describe('AmqplibConnectionSource', () => {
@@ -51,7 +50,7 @@ describe('AmqplibConnectionSource', () => {
       let events = 0;
       const channelSource = new AmqplibChannelSource({ connectionSource, decorator });
       const channel = await channelSource.getChannel();
-      channel.on(ScampEvents.LOST, () => events++);
+      channel.on(ScampEvent.LOST, () => events++);
 
       channel.emit('close');
 
@@ -62,7 +61,7 @@ describe('AmqplibConnectionSource', () => {
       let events = 0;
       const channelSource = new AmqplibChannelSource({ connectionSource, decorator });
       const channel = await channelSource.getChannel();
-      channel.on(ScampEvents.LOST, () => events++);
+      channel.on(ScampEvent.LOST, () => events++);
 
       channel.emit('error');
 
@@ -73,7 +72,7 @@ describe('AmqplibConnectionSource', () => {
       let events = 0;
       const channelSource = new AmqplibChannelSource({ connectionSource, decorator });
       const channel = await channelSource.getChannel();
-      channel.on(ScampEvents.LOST, () => events++);
+      channel.on(ScampEvent.LOST, () => events++);
       await channelSource.close();
 
       channel.emit('close');
@@ -85,7 +84,7 @@ describe('AmqplibConnectionSource', () => {
       let events = 0;
       const channelSource = new AmqplibChannelSource({ connectionSource, decorator });
       const channel = await channelSource.getChannel();
-      channel.on(ScampEvents.LOST, () => events++);
+      channel.on(ScampEvent.LOST, () => events++);
       channel.on('error', () => {});
 
       channel.emit('error', new Error('Oh Noes'));

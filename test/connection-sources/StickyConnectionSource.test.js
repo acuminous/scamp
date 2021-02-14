@@ -1,8 +1,7 @@
 const { strictEqual: eq, rejects } = require('assert');
 const { describe, it } = require('zunit');
 const { EventEmitter } = require('events');
-const { StickyConnectionSource } = require('../..');
-const ScampEvents = require('../../lib/ScampEvents');
+const { StickyConnectionSource, ScampEvent } = require('../..');
 
 describe('StickyConnectionSource', () => {
 
@@ -32,7 +31,7 @@ describe('StickyConnectionSource', () => {
       const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
 
       const connection1 = await connectionSource.getConnection();
-      connection1.emit(ScampEvents.LOST);
+      connection1.emit(ScampEvent.LOST);
 
       const connection2 = await connectionSource.getConnection();
 
@@ -46,7 +45,7 @@ describe('StickyConnectionSource', () => {
 
       const connection1 = await connectionSource.getConnection();
       eq(connection1.x_scamp.id, 1);
-      connection1.emit(ScampEvents.LOST);
+      connection1.emit(ScampEvent.LOST);
 
       const connections = await Promise.all(new Array(100).fill().map(() => connectionSource.getConnection()));
       connections.forEach(connection2 => {

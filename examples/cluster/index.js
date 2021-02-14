@@ -2,10 +2,7 @@
 
 const amqplib = require('amqplib');
 const { shuffle } = require('d3');
-const { AmqplibConnectionSource, MultiConnectionSource, StickyConnectionSource, StickyChannelSource, ResilientChannelSource } = require('../..');
-const { AmqplibChannelSource } = require('../../lib/channel-sources');
-const { ResilientConnectionSource } = require('../../lib/connection-sources');
-const ScampEvents = require('../../lib/ScampEvents');
+const { AmqplibConnectionSource, MultiConnectionSource, StickyConnectionSource, ResilientConnectionSource, StickyChannelSource, ResilientChannelSource, AmqplibChannelSource, ScampEvent } = require('../..');
 
 const clusterConnectionSource = createClusterConnectionSource();
 const producerChannelSource = createResilientChannelSource({ connectionSource: clusterConnectionSource });
@@ -67,5 +64,5 @@ async function consume(channelSource) {
     await channel.ack(message);
   });
 
-  channel.once(ScampEvents.LOST, () => consume(channelSource));
+  channel.once(ScampEvent.LOST, () => consume(channelSource));
 }

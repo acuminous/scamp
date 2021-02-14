@@ -1,8 +1,7 @@
 const { strictEqual: eq, rejects } = require('assert');
 const { beforeEach, describe, it } = require('zunit');
 const { EventEmitter } = require('events');
-const ScampEvents = require('../../lib/ScampEvents');
-const { AmqplibConnectionSource, ConnectionDecorator, Counter } = require('../..');
+const { AmqplibConnectionSource, ConnectionDecorator, Counter, ScampEvent } = require('../..');
 
 describe('AmqplibConnectionSource', () => {
 
@@ -55,7 +54,7 @@ describe('AmqplibConnectionSource', () => {
       const connection = await connectionSource.getConnection();
       let events = 0;
 
-      connection.on(ScampEvents.LOST, () => events++);
+      connection.on(ScampEvent.LOST, () => events++);
 
       connection.emit('close');
 
@@ -66,7 +65,7 @@ describe('AmqplibConnectionSource', () => {
       let events = 0;
       const connectionSource = new AmqplibConnectionSource({ amqplib, decorator });
       const connection = await connectionSource.getConnection();
-      connection.on(ScampEvents.LOST, () => events++);
+      connection.on(ScampEvent.LOST, () => events++);
 
       connection.emit('error', new Error('Oh Noes'));
 
@@ -77,7 +76,7 @@ describe('AmqplibConnectionSource', () => {
       let events = 0;
       const connectionSource = new AmqplibConnectionSource({ amqplib, decorator });
       const connection = await connectionSource.getConnection();
-      connection.on(ScampEvents.LOST, () => events++);
+      connection.on(ScampEvent.LOST, () => events++);
       connection.on('error', () => {});
 
       connection.emit('error', new Error('Oh Noes'));
@@ -92,7 +91,7 @@ describe('AmqplibConnectionSource', () => {
       let events = 0;
       const connectionSource = new AmqplibConnectionSource({ amqplib, decorator });
       const connection = await connectionSource.getConnection();
-      connection.on(ScampEvents.LOST, () => events++);
+      connection.on(ScampEvent.LOST, () => events++);
       await connectionSource.close();
 
       connection.emit('close');

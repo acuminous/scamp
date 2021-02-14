@@ -1,8 +1,7 @@
 const { strictEqual: eq, rejects } = require('assert');
 const { describe, it } = require('zunit');
 const { EventEmitter } = require('events');
-const { StickyChannelSource } = require('../..');
-const ScampEvents = require('../../lib/ScampEvents');
+const { StickyChannelSource, ScampEvent } = require('../..');
 
 describe('StickyChannelSource', () => {
 
@@ -37,7 +36,7 @@ describe('StickyChannelSource', () => {
 
         const channel1 = await channelSource[method]();
 
-        channel1.emit(ScampEvents.LOST);
+        channel1.emit(ScampEvent.LOST);
 
         const channel2 = await channelSource[method]();
 
@@ -51,7 +50,7 @@ describe('StickyChannelSource', () => {
 
         const channel1 = await channelSource[method]();
         eq(channel1.x_scamp.id, 1);
-        channel1.emit(ScampEvents.LOST);
+        channel1.emit(ScampEvent.LOST);
 
         const connections = await Promise.all(new Array(100).fill().map(() => channelSource[method]()));
         connections.forEach(channel2 => {
