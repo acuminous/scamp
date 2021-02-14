@@ -1,5 +1,19 @@
 # scamp
 
+## TL;DR
+
+```js
+const { shuffle } = require('d3');
+const { AmqplibConnectionSource, MultiConnectionSource, CachingConnectionSource } = require('scamp');
+
+const node1 = new AmqplibConnectionSource({ hostname: 'node1.example.com' });
+const node2 = new AmqplibConnectionSource({ hostname: 'node2.example.com' });
+const node3 = new AmqplibConnectionSource({ hostname: 'node3.example.com' });
+const multiConnectionSource = new MultiConnectionSource({ connectionSources: shuffle([ node1, node2, node3 ]) });
+const connectionSource = new CachingConnectionSource({ connectionSource: multiConnectionSource });
+```
+
+
 ## Connection Topologies
 
 Scamp allows you to choose your connection topology by providing a range of pluggable connection and channel sources. For example...
@@ -109,8 +123,8 @@ Virtual Hosts are obtained by connecting to a broker.
 
 ```js
 const connectionSource = new SimpleConnectionSource();
-const vhost = await broker.connect({ 
-  connectionSource, 
+const vhost = await broker.connect({
+  connectionSource,
   options: {
     host: 'localhost',
     port: 5672,
@@ -142,11 +156,11 @@ const vhost = await broker.connect({
 Exchanges are obtained from a virtual host using vhost.declareExchange. You can use the `passive` option to determine whether the exchange should be created if it doesn't already exist. Declaring an exchange passively which does not already exist will result in an error. Attempting to redeclare an exchange with different attributes will also result in an error. Once you have an instance of an exchange you can create a [producer](#producers) and start publishing messages.
 
 ```js
-const exchange = await vhost.declareExchange({ 
-  name: 'ex1', 
-  type: 'topic', 
-  passive: false, 
-  arguments: { 
+const exchange = await vhost.declareExchange({
+  name: 'ex1',
+  type: 'topic',
+  passive: false,
+  arguments: {
     'x-dead-letter-exchange': 'dlx',
   },
 });
@@ -170,10 +184,10 @@ Like exchanges, queues are also obtained from a virtual host using vhost.declare
 
 
 ```js
-const queue = await vhost.declareQueue({ 
-  name: 'q1', 
-  passive: false, 
-  arguments: { 
+const queue = await vhost.declareQueue({
+  name: 'q1',
+  passive: false,
+  arguments: {
     'x-message-ttl': 1000,
   },
 });
@@ -232,7 +246,7 @@ const producer = queue.getProducer({ channelSource })
   .detectContentType(true)
   .encryptContent('profile-1'})
   .timeout(1000);
- 
+
 await new Promise((resolve, reject) => {
   producer.publish('hello world')
     .on('success', message => {
@@ -251,7 +265,7 @@ await new Promise((resolve, reject) => {
     .on('ready', () => {
       // May want to relax back pressure
     });
-}); 
+});
 
 await producer.close();
 await vhost.disconnect();
@@ -264,7 +278,7 @@ Consumers are obtained from a queue. They require a channel source for obtaining
 const channelSource = new SimpleChannelSource();
 const consumer = queue.createConsumer({ channelSource })
   .setPrefetch(10)
-  .setContentType('application/xml')  
+  .setContentType('application/xml')
   .decryptContent(true)
   .parseContent(true);
 
@@ -277,4 +291,3 @@ consumer.subscribe()
     console.error(err);
   });
 ```
-
