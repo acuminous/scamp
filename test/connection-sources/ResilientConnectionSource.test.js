@@ -38,7 +38,6 @@ describe('ResilientConnectionSource', () => {
       ok(duration <= 400);
     });
 
-
     it('should give up attempting to acquire a connection when retry stratgey returns a negative', async () => {
       const connectionSourceStub = new ConnectionSourceStub(3);
       const retryStrategy = () => -1;

@@ -2,14 +2,14 @@
 
 const amqplib = require('amqplib');
 const { shuffle } = require('d3');
-const { AmqplibConnectionSource, MultiConnectionSource, StickyConnectionSource, StickyChannelSource } = require('../..');
+const { AmqplibConnectionSource, MultiConnectionSource, StickyConnectionSource, StickyChannelSource, ResilientChannelSource } = require('../..');
 const { AmqplibChannelSource } = require('../../lib/channel-sources');
 const { ResilientConnectionSource } = require('../../lib/connection-sources');
 const ScampEvents = require('../../lib/ScampEvents');
 
 const clusterConnectionSource = createClusterConnectionSource();
-const producerChannelSource = createStickyChannelSource({ connectionSource: clusterConnectionSource });
-const consumerChannelSource = createStickyChannelSource({ connectionSource: clusterConnectionSource });
+const producerChannelSource = createResilientChannelSource({ connectionSource: clusterConnectionSource });
+const consumerChannelSource = createResilientChannelSource({ connectionSource: clusterConnectionSource });
 
 (async () => {
   try {
@@ -30,11 +30,12 @@ function createClusterConnectionSource() {
   return new ResilientConnectionSource({ connectionSource: multiConnectionSource });
 }
 
-function createStickyChannelSource({ connectionSource }) {
+function createResilientChannelSource({ connectionSource }) {
   const stickyConnectionSource = new StickyConnectionSource({ connectionSource });
   const amqplibChannelSource = new AmqplibChannelSource({ connectionSource: stickyConnectionSource })
     .registerChannelListener('error', console.error);
-  return new StickyChannelSource({ channelSource: amqplibChannelSource });
+  const stickyChannelSource = new StickyChannelSource({ channelSource: amqplibChannelSource });
+  return new ResilientChannelSource({ channelSource: stickyChannelSource });
 }
 
 async function createTopology(connectionSource) {
