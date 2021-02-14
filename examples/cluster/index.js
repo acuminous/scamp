@@ -2,38 +2,28 @@
 
 const amqplib = require('amqplib');
 const { shuffle } = require('d3');
-const { AmqplibConnectionSource, MultiConnectionSource, StickyConnectionSource, ResilientConnectionSource, StickyChannelSource, ResilientChannelSource, AmqplibChannelSource, ScampEvent } = require('../..');
+const { HighlyAvailableConnectionSource, StickyConnectionSource, StickyChannelSource, ResilientChannelSource, AmqplibChannelSource, ScampEvent } = require('../..');
+const keepAlive = setInterval(() => {}, 600000);
+const nodes = shuffle([ 5672, 5673, 5674 ]).map(port => ({ port }));
 
-const clusterConnectionSource = createClusterConnectionSource();
-const producerChannelSource = createResilientChannelSource({ connectionSource: clusterConnectionSource });
-const consumerChannelSource = createResilientChannelSource({ connectionSource: clusterConnectionSource });
+const [ topologyConnectionSource, producerConnectionSource, consumerConnectionSource ] = new Array(3).fill().map(() => new HighlyAvailableConnectionSource({ amqplib, nodes })
+  .registerConnectionListener('error', console.error)
+  .registerConnectionListener(ScampEvent.ACQUIRED, ({ x_scamp }) => console.log('Connected to', x_scamp.id)));
 
 (async () => {
   try {
-    await createTopology(clusterConnectionSource);
-    produce(producerChannelSource);
-    consume(consumerChannelSource);
+    await createTopology(topologyConnectionSource);
+    const cancelProducer = await produce(producerConnectionSource);
+    const cancelConsumer = await consume(consumerConnectionSource);
+    process.once('SIGINT', async () => {
+      console.log('Interupted');
+      await Promise.all([cancelProducer(), cancelConsumer]);
+      clearInterval(keepAlive);
+    });
   } catch (err) {
     console.error(err);
   }
 })();
-setInterval(() => {}, 600000);
-
-function createClusterConnectionSource() {
-  const ports = [ 5672, 5673, 5674 ];
-  const connectionSources = shuffle(ports).map(port => new AmqplibConnectionSource({ amqplib, params: { port } })
-    .registerConnectionListener('error', console.error));
-  const multiConnectionSource = new MultiConnectionSource({ connectionSources });
-  return new ResilientConnectionSource({ connectionSource: multiConnectionSource });
-}
-
-function createResilientChannelSource({ connectionSource }) {
-  const stickyConnectionSource = new StickyConnectionSource({ connectionSource });
-  const amqplibChannelSource = new AmqplibChannelSource({ connectionSource: stickyConnectionSource })
-    .registerChannelListener('error', console.error);
-  const stickyChannelSource = new StickyChannelSource({ channelSource: amqplibChannelSource });
-  return new ResilientChannelSource({ channelSource: stickyChannelSource });
-}
 
 async function createTopology(connectionSource) {
   const channelSource = new AmqplibChannelSource({ connectionSource })
@@ -44,14 +34,28 @@ async function createTopology(connectionSource) {
   await channel.connection.close();
 }
 
-async function produce(channelSource) {
-  setInterval(async () => {
+async function produce(connectionSource) {
+  const channelSource = createResilientChannelSource({ connectionSource })
+    .registerChannelListener('error', console.error);
+
+  const timer = setInterval(async () => {
     const channel = await channelSource.getChannel();
-    channel.sendToQueue('test', Buffer.from(new Date().toString()));
+    await channel.sendToQueue('test', Buffer.from(new Date().toString()));
   }, 1000).unref();
+
+  return async () => {
+    clearInterval(timer);
+    const channel = await channelSource.getChannel();
+    await channelSource.close();
+    await channel.close();
+    await channel.connection.close();
+  };
 }
 
-async function consume(channelSource) {
+async function consume(connectionSource) {
+  const channelSource = createResilientChannelSource({ connectionSource })
+    .registerChannelListener('error', console.error);
+
   const channel = await channelSource.getChannel();
   const consumerTag = await channel.consume('test', async (message) => {
     if (message === null) {
@@ -64,5 +68,22 @@ async function consume(channelSource) {
     await channel.ack(message);
   });
 
-  channel.once(ScampEvent.LOST, () => consume(channelSource));
+  const reconsume = () => consume(channelSource);
+  channel.once(ScampEvent.LOST, reconsume);
+
+  return async () => {
+    await channel.cancel(consumerTag);
+    channel.removeListener(ScampEvent.LOST, reconsume);
+    await channelSource.close();
+    await channel.close();
+    await channel.connection.close();
+  };
+}
+
+function createResilientChannelSource({ connectionSource }) {
+  const stickyConnectionSource = new StickyConnectionSource({ connectionSource });
+  const amqplibChannelSource = new AmqplibChannelSource({ connectionSource: stickyConnectionSource })
+    .registerChannelListener('error', console.error);
+  const stickyChannelSource = new StickyChannelSource({ channelSource: amqplibChannelSource });
+  return new ResilientChannelSource({ channelSource: stickyChannelSource });
 }
