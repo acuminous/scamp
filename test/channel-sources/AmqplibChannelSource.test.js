@@ -97,7 +97,7 @@ describe('AmqplibConnectionSource', () => {
     });
   });
 
-  describe('Close', async () => {
+  describe('close', async () => {
 
     it('should reject attempts to get a regular channel when closed', async () => {
       const channelSource = new AmqplibChannelSource({ connectionSource, decorator });

@@ -8,7 +8,7 @@ describe('CachingChannelSource', () => {
 
   [{ type: 'regular', method: 'getChannel' }, { type: 'confirm', method: 'getConfirmChannel' }].forEach(({ type, method }) => {
 
-    describe(`${type} channels`, () => {
+    describe(`getChannel (${type})`, () => {
 
       it(`should acquire a new ${type} channel when the cache is empty`, async () => {
         const stubChannelSource = new ChannelSourceStub();
@@ -61,7 +61,7 @@ describe('CachingChannelSource', () => {
     });
   });
 
-  describe('Close', async () => {
+  describe('close', async () => {
 
     it('should closes cached channels', async () => {
       const stubChannelSource = new ChannelSourceStub();

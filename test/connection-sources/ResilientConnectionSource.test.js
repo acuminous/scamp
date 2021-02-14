@@ -48,7 +48,7 @@ describe('ResilientConnectionSource', () => {
     });
   });
 
-  describe('Close', async () => {
+  describe('close', async () => {
 
     it('should cancel inflight retry attempts', async () => {
       const connectionSourceStub = new ConnectionSourceStub();

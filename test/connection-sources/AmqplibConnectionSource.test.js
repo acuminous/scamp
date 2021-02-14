@@ -46,7 +46,6 @@ describe('AmqplibConnectionSource', () => {
       const connection2 = await connectionSource.getConnection();
       eq(connection2.x_scamp.id, 'amqp://guest@localhost:5672/?2');
     });
-
   });
 
   describe('Lost Connections', () => {
@@ -102,7 +101,8 @@ describe('AmqplibConnectionSource', () => {
     });
   });
 
-  describe('Custom Listeners', () => {
+  describe('registerCustomListener', () => {
+
     it('should support custom connection event listeners', async () => {
       let events = 0;
 
@@ -116,7 +116,7 @@ describe('AmqplibConnectionSource', () => {
     });
   });
 
-  describe('Close', async () => {
+  describe('close', async () => {
 
     it('should reject attempts to get a connection when closed', async () => {
       const connectionSource = new AmqplibConnectionSource({ amqplib, decorator });

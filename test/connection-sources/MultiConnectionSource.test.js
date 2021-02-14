@@ -26,7 +26,7 @@ describe('MultiConnectionSource', () => {
     });
   });
 
-  describe('Close', async () => {
+  describe('close', async () => {
 
     it('should reject attempts to get a connection when closed', async () => {
       const connectionSource = new MultiConnectionSource({ connectionSources: [] });
