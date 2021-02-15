@@ -16,7 +16,15 @@ Scamp allows you to choose your connection topology by providing a range of plug
       │                         │                                            │                         │
       │                         │                                            │                         │
       └─────────────────────────┘                                            └─────────────────────────┘
+```js
+const { DedicatedConnectionSource, DedicatedChannelSource } = require('scamp');
+const connectionOptions = { hostname: 'rabbitmq.example.com' };
+const socketOptions = { timeout: 10000 };
+const connectionSource = new DedicatedConnectionSource({ amqplib, connectionOptions, socketOptions });
+const channelSource = new DedicatedChannelSource({ connectionSource });
 
+const channel = await channelSource.getChannel();
+```
 
 #### Dedicated connection with a channel pool
       ┌─────────────────────────┐                                            ┌─────────────────────────┐
@@ -32,8 +40,15 @@ Scamp allows you to choose your connection topology by providing a range of plug
       │                         ├────────────────────────────────────────────┤                         │
       │                         │                                            │                         │
       └─────────────────────────┘                                            └─────────────────────────┘
+```js
+const { DedicatedConnectionSource, DedicatedChannelSource } = require('scamp');
+const connectionOptions = { hostname: 'rabbitmq.example.com' };
+const socketOptions = { timeout: 10000 };
+const connectionSource = new DedicatedConnectionSource({ amqplib, connectionOptions, socketOptions });
+const channelSource = new PooledChannelSource({ connectionSource, size: 2 });
 
-
+const channel = await channelSource.getChannel();
+```
 
 #### Connection pool with dedicated channels
       ┌─────────────────────────┐                Connection 1                ┌─────────────────────────┐
