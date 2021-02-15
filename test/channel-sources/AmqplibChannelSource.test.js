@@ -17,16 +17,41 @@ describe('AmqplibConnectionSource', () => {
     decorator = new ChannelDecorator({ counter: new Counter });
   });
 
-  describe('x_scamp', () => {
+  describe('registerChannelListener', () => {
 
-    it('should assign x_scamp.id to regular channels', async () => {
+    it('should add registered listeners to new regular channels', async() => {
+      let events = 0;
+      const channelSource = new AmqplibChannelSource({ connectionSource, decorator });
+
+      channelSource.registerChannelListener('close', () => events++ );
+      const channel = await channelSource.getChannel();
+      channel.emit('close');
+
+      eq(events, 1);
+    });
+
+    it('should add registered listeners to new confirm channels', async() => {
+      let events = 0;
+      const channelSource = new AmqplibChannelSource({ connectionSource, decorator });
+
+      channelSource.registerChannelListener('close', () => events++ );
+      const channel = await channelSource.getConfirmChannel();
+      channel.emit('close');
+
+      eq(events, 1);
+    });
+  });
+
+  describe('getChannel', () => {
+
+    it('should decorate regular channels with x_scamp.id', async () => {
       const channelSource = new AmqplibChannelSource({ connectionSource, decorator });
 
       const channel = await channelSource.getChannel();
       eq(channel.x_scamp.id, 'amqp://guest@localhost:5672/?1-1');
     });
 
-    it('should assign x_scamp.id to confirm channels', async () => {
+    it('should decorate confirm channels with x_scamp.id', async () => {
       const channelSource = new AmqplibChannelSource({ connectionSource, decorator });
 
       const channel = await channelSource.getConfirmChannel();

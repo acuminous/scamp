@@ -1,4 +1,4 @@
-const { ok, rejects } = require('assert');
+const { strictEqual: eq, ok, rejects } = require('assert');
 const { describe, it } = require('zunit');
 const { EventEmitter } = require('events');
 const { ResilientChannelSource } = require('../..');
@@ -6,6 +6,20 @@ const { ResilientChannelSource } = require('../..');
 describe('ResilientChannelSource', () => {
 
   [{ type: 'regular', method: 'getChannel' }, { type: 'confirm', method: 'getConfirmChannel' }].forEach(({ type, method }) => {
+
+
+    describe('registerChannelListener', () => {
+
+      it('should add registered listeners to underlying channel source', async() => {
+        const channelSourceStub = new ChannelSourceStub();
+        const channelSource = new ResilientChannelSource({ channelSource: channelSourceStub });
+
+        channelSource.registerChannelListener('close', () =>  {});
+
+        eq(channelSourceStub.channelListeners.length, 1);
+        eq(channelSourceStub.channelListeners[0].event, 'close');
+      });
+    });
 
     describe(`getChannel (${type})`, () => {
 
@@ -83,6 +97,11 @@ class ChannelSourceStub {
   constructor(attempts = 100) {
     this.attempts = attempts;
     this.attempt = 0;
+    this.channelListeners = [];
+  }
+
+  registerChannelListener(event, listener) {
+    this.channelListeners.push({ event, listener });
   }
 
   async getChannel() {

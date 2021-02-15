@@ -5,6 +5,19 @@ const { StickyChannelSource, ScampEvent } = require('../..');
 
 describe('StickyChannelSource', () => {
 
+  describe('registerChannelListener', () => {
+
+    it('should add registered listeners to underlying channel source', async() => {
+      const channelSourceStub = new ChannelSourceStub();
+      const channelSource = new StickyChannelSource({ channelSource: channelSourceStub });
+
+      channelSource.registerChannelListener('close', () =>  {});
+
+      eq(channelSourceStub.channelListeners.length, 1);
+      eq(channelSourceStub.channelListeners[0].event, 'close');
+    });
+  });
+
   [{ type: 'regular', method: 'getChannel' }, { type: 'confirm', method: 'getConfirmChannel' }].forEach(({ type, method }) => {
 
     describe(`getChannel (${type})`, () => {
@@ -103,6 +116,11 @@ describe('StickyChannelSource', () => {
 class ChannelSourceStub {
   constructor() {
     this.id = 1;
+    this.channelListeners = [];
+  }
+
+  registerChannelListener(event, listener) {
+    this.channelListeners.push({ event, listener });
   }
 
   async getChannel() {
