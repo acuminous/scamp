@@ -67,6 +67,19 @@ const channel = await channelSource.getChannel();
       │                         │                                            │                         │
       │                         ├────────────────────────────────────────────┤                         │
       └─────────────────────────┘                                            └─────────────────────────┘
+```js
+const amqplib = require('amqplib');
+const { DedicatedConnectionSource, DedicatedChannelSource, MultiChannelSource } = require('scamp');
+const connectionOptions = { hostname: 'rabbitmq.example.com' };
+const socketOptions = { timeout: 10000 };
+const channelSources = [
+  new DedicatedChannelSource({ connectionSource: new DedicatedConnectionSource({ amqplib, connectionOptions, socketOptions }) }),
+  new DedicatedChannelSource({ connectionSource: new DedicatedConnectionSource({ amqplib, connectionOptions, socketOptions }) }),
+];  
+const channelSource = new MultiChannelSource({ channelSources });
+
+const channel = await channelSource.getChannel();
+```
 
 #### Dedicated active/passive connection with dedicated channel
 
@@ -84,6 +97,25 @@ const channel = await channelSource.getChannel();
       │                         │                                            │                         │
       │                         ├ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─│                         │
       └─────────────────────────┘                                            └─────────────────────────┘
+```js
+const amqplib = require('amqplib');
+const { DedicatedConnectionSource, DedicatedChannelSource } = require('scamp');
+const optionSets = [
+  { 
+    connectionOptions: { hostname: 'rabbitmq-primary.example.com' } },
+    socketOptions: { timeout: 10000 },
+  },
+  { 
+    connectionOptions: { hostname: 'rabbitmq-secondary.example.com' } },
+    socketOptions: { timeout: 10000 },
+  },
+];
+const connectionSource = new HighAvailabilityConnectionSource({ amqplib, optionSets });
+const channelSource = new DedicatedChannelSource({ connectionSource });
+
+const channel = await channelSource.getChannel();
+```
+
 
 ### Broker
 The broker is a container for one or more virtual hosts and repository for common config such as encryption profiles and content parsers.
