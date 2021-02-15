@@ -1,4 +1,5 @@
 # Scamp
+Scamp is an advanced Node.js client for RabbitMQ.
 
 ## Connection Topologies
 
