@@ -2,36 +2,41 @@
 
 const amqplib = require('amqplib');
 const { shuffle } = require('d3');
-const { HighAvailabiltyConnectionSource, StickyConnectionSource, StickyChannelSource, ResilientChannelSource, AmqplibChannelSource, ScampEvent } = require('../..');
+const { HighAvailabiltyConnectionSource, DedicatedChannelSource, ScampEvent } = require('../..');
 const keepAlive = setInterval(() => {}, 600000);
 const optionSets = shuffle([ 5672, 5673, 5674 ]).map(port => ({ connectionOptions: { port }, socketOptions: { timeout: 5000 } }));
 
-const [ topologyConnectionSource, producerConnectionSource, consumerConnectionSource ] = new Array(3).fill().map(() => new HighAvailabiltyConnectionSource({ amqplib, optionSets })
-  .registerConnectionListener('error', console.error)
-  .registerConnectionListener(ScampEvent.ACQUIRED, ({ x_scamp }) => console.log('Connected to', x_scamp.id)));
-
 (async () => {
   try {
-    await createTopology(topologyConnectionSource);
-    const cancelProducer = await produce(producerConnectionSource);
-    const cancelConsumer = await consume(consumerConnectionSource);
+    await createTopology();
+    const cancelProducer = await produce();
+    const cancelConsumer = await consume();
     addShutdownListerners(cancelProducer, cancelConsumer);
   } catch (err) {
     console.error(err);
   }
 })();
 
-async function createTopology(connectionSource) {
-  const channelSource = new AmqplibChannelSource({ connectionSource })
+async function createTopology() {
+  const connectionSource = new HighAvailabiltyConnectionSource({ amqplib, optionSets })
+    .registerConnectionListener('error', console.error)
+    .registerConnectionListener(ScampEvent.ACQUIRED, ({ x_scamp }) => console.log('Connected to', x_scamp.id));
+
+  const channelSource = new DedicatedChannelSource({ connectionSource })
     .registerChannelListener('error', console.error);
+
   const channel = await channelSource.getChannel();
   await channel.assertQueue('test');
   await channel.close();
   await channel.connection.close();
 }
 
-async function produce(connectionSource) {
-  const channelSource = createResilientChannelSource({ connectionSource })
+async function produce() {
+  const connectionSource = new HighAvailabiltyConnectionSource({ amqplib, optionSets })
+    .registerConnectionListener('error', console.error)
+    .registerConnectionListener(ScampEvent.ACQUIRED, ({ x_scamp }) => console.log('Connected to', x_scamp.id));
+
+  const channelSource = new DedicatedChannelSource({ connectionSource })
     .registerChannelListener('error', console.error);
 
   const timer = setInterval(async () => {
@@ -49,8 +54,12 @@ async function produce(connectionSource) {
   };
 }
 
-async function consume(connectionSource) {
-  const channelSource = createResilientChannelSource({ connectionSource })
+async function consume() {
+  const connectionSource = new HighAvailabiltyConnectionSource({ amqplib, optionSets })
+    .registerConnectionListener('error', console.error)
+    .registerConnectionListener(ScampEvent.ACQUIRED, ({ x_scamp }) => console.log('Connected to', x_scamp.id));
+
+  const channelSource = new DedicatedChannelSource({ connectionSource })
     .registerChannelListener('error', console.error);
 
   const channel = await channelSource.getChannel();
@@ -73,14 +82,6 @@ async function consume(connectionSource) {
     await channel.connection.close();
     console.log('Consumer cancelled');
   };
-}
-
-function createResilientChannelSource({ connectionSource }) {
-  const stickyConnectionSource = new StickyConnectionSource({ connectionSource });
-  const amqplibChannelSource = new AmqplibChannelSource({ connectionSource: stickyConnectionSource })
-    .registerChannelListener('error', console.error);
-  const stickyChannelSource = new StickyChannelSource({ channelSource: amqplibChannelSource });
-  return new ResilientChannelSource({ channelSource: stickyChannelSource });
 }
 
 function addShutdownListerners(...tasks) {

@@ -17,6 +17,7 @@ Scamp allows you to choose your connection topology by providing a range of plug
       │                         │                                            │                         │
       └─────────────────────────┘                                            └─────────────────────────┘
 ```js
+const amqplib = require('amqplib');
 const { DedicatedConnectionSource, DedicatedChannelSource } = require('scamp');
 const connectionOptions = { hostname: 'rabbitmq.example.com' };
 const socketOptions = { timeout: 10000 };
@@ -41,7 +42,8 @@ const channel = await channelSource.getChannel();
       │                         │                                            │                         │
       └─────────────────────────┘                                            └─────────────────────────┘
 ```js
-const { DedicatedConnectionSource, DedicatedChannelSource } = require('scamp');
+const amqplib = require('amqplib');
+const { DedicatedConnectionSource, PooledChannelSource } = require('scamp');
 const connectionOptions = { hostname: 'rabbitmq.example.com' };
 const socketOptions = { timeout: 10000 };
 const connectionSource = new DedicatedConnectionSource({ amqplib, connectionOptions, socketOptions });
