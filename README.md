@@ -47,7 +47,7 @@ const { DedicatedConnectionSource, PooledChannelSource } = require('scamp');
 const connectionOptions = { hostname: 'rabbitmq.example.com' };
 const socketOptions = { timeout: 10000 };
 const connectionSource = new DedicatedConnectionSource({ amqplib, connectionOptions, socketOptions });
-const channelSource = new PooledChannelSource({ connectionSource, size: 2 });
+const channelSource = new PooledChannelSource({ size: 2, connectionSource });
 
 const channel = await channelSource.getChannel();
 ```
