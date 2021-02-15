@@ -4,9 +4,9 @@ const amqplib = require('amqplib');
 const { shuffle } = require('d3');
 const { HighAvailabiltyConnectionSource, StickyConnectionSource, StickyChannelSource, ResilientChannelSource, AmqplibChannelSource, ScampEvent } = require('../..');
 const keepAlive = setInterval(() => {}, 600000);
-const nodes = shuffle([ 5672, 5673, 5674 ]).map(port => ({ port }));
+const optionSets = shuffle([ 5672, 5673, 5674 ]).map(port => ({ connectionOptions: { port }, socketOptions: { timeout: 5000 } }));
 
-const [ topologyConnectionSource, producerConnectionSource, consumerConnectionSource ] = new Array(3).fill().map(() => new HighAvailabiltyConnectionSource({ amqplib, nodes })
+const [ topologyConnectionSource, producerConnectionSource, consumerConnectionSource ] = new Array(3).fill().map(() => new HighAvailabiltyConnectionSource({ amqplib, optionSets })
   .registerConnectionListener('error', console.error)
   .registerConnectionListener(ScampEvent.ACQUIRED, ({ x_scamp }) => console.log('Connected to', x_scamp.id)));
 
