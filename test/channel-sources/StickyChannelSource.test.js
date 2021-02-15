@@ -8,13 +8,13 @@ describe('StickyChannelSource', () => {
   describe('registerChannelListener', () => {
 
     it('should add registered listeners to underlying channel source', async() => {
-      const channelSourceStub = new ChannelSourceStub();
-      const channelSource = new StickyChannelSource({ channelSource: channelSourceStub });
+      const stubChannelSource = new StubChannelSource();
+      const channelSource = new StickyChannelSource({ channelSource: stubChannelSource });
 
       channelSource.registerChannelListener('close', () =>  {});
 
-      eq(channelSourceStub.channelListeners.length, 1);
-      eq(channelSourceStub.channelListeners[0].event, 'close');
+      eq(stubChannelSource.channelListeners.length, 1);
+      eq(stubChannelSource.channelListeners[0].event, 'close');
     });
   });
 
@@ -23,7 +23,7 @@ describe('StickyChannelSource', () => {
     describe(`getChannel (${type})`, () => {
 
       it(`should acquire a new ${type} channel when the cache is empty`, async () => {
-        const stubChannelSource = new ChannelSourceStub();
+        const stubChannelSource = new StubChannelSource();
         const channelSource = new StickyChannelSource({ channelSource: stubChannelSource });
 
         const channel = await channelSource[method]();
@@ -33,7 +33,7 @@ describe('StickyChannelSource', () => {
       });
 
       it(`should reuse the existing ${type} channel when the cache is primed`, async () => {
-        const stubChannelSource = new ChannelSourceStub();
+        const stubChannelSource = new StubChannelSource();
         const channelSource = new StickyChannelSource({ channelSource: stubChannelSource });
 
         const channel1 = await channelSource[method]();
@@ -44,7 +44,7 @@ describe('StickyChannelSource', () => {
       });
 
       it(`should acquire a new ${type} channel after loss`, async () => {
-        const stubChannelSource = new ChannelSourceStub();
+        const stubChannelSource = new StubChannelSource();
         const channelSource = new StickyChannelSource({ channelSource: stubChannelSource });
 
         const channel1 = await channelSource[method]();
@@ -58,7 +58,7 @@ describe('StickyChannelSource', () => {
       });
 
       it(`should synchronise new ${type} channel acquisition`, async () => {
-        const stubChannelSource = new ChannelSourceStub();
+        const stubChannelSource = new StubChannelSource();
         const channelSource = new StickyChannelSource({ channelSource: stubChannelSource });
 
         const channel1 = await channelSource[method]();
@@ -76,7 +76,7 @@ describe('StickyChannelSource', () => {
   describe('close', async () => {
 
     it('should closes cached channels', async () => {
-      const stubChannelSource = new ChannelSourceStub();
+      const stubChannelSource = new StubChannelSource();
       const channelSource = new StickyChannelSource({ channelSource: stubChannelSource });
 
       const channel1 = await channelSource.getChannel();
@@ -89,7 +89,7 @@ describe('StickyChannelSource', () => {
     });
 
     it('should reject attempts to get a regular channel when closed', async () => {
-      const stubChannelSource = new ChannelSourceStub();
+      const stubChannelSource = new StubChannelSource();
       const channelSource = new StickyChannelSource({ channelSource: stubChannelSource });
       await channelSource.close();
 
@@ -97,7 +97,7 @@ describe('StickyChannelSource', () => {
     });
 
     it('should reject attempts to get a confirm channel when closed', async () => {
-      const stubChannelSource = new ChannelSourceStub();
+      const stubChannelSource = new StubChannelSource();
       const channelSource = new StickyChannelSource({ channelSource: stubChannelSource });
       await channelSource.close();
 
@@ -105,7 +105,7 @@ describe('StickyChannelSource', () => {
     });
 
     it('should tolerate repeated closures', async () => {
-      const stubChannelSource = new ChannelSourceStub();
+      const stubChannelSource = new StubChannelSource();
       const channelSource = new StickyChannelSource({ channelSource: stubChannelSource });
       await channelSource.close();
       await channelSource.close();
@@ -113,7 +113,7 @@ describe('StickyChannelSource', () => {
   });
 });
 
-class ChannelSourceStub {
+class StubChannelSource {
   constructor() {
     this.id = 1;
     this.channelListeners = [];

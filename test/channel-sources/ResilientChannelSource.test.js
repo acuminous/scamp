@@ -7,25 +7,24 @@ describe('ResilientChannelSource', () => {
 
   [{ type: 'regular', method: 'getChannel' }, { type: 'confirm', method: 'getConfirmChannel' }].forEach(({ type, method }) => {
 
-
     describe('registerChannelListener', () => {
 
       it('should add registered listeners to underlying channel source', async() => {
-        const channelSourceStub = new ChannelSourceStub();
-        const channelSource = new ResilientChannelSource({ channelSource: channelSourceStub });
+        const stubChannelSource = new StubChannelSource();
+        const channelSource = new ResilientChannelSource({ channelSource: stubChannelSource });
 
         channelSource.registerChannelListener('close', () =>  {});
 
-        eq(channelSourceStub.channelListeners.length, 1);
-        eq(channelSourceStub.channelListeners[0].event, 'close');
+        eq(stubChannelSource.channelListeners.length, 1);
+        eq(stubChannelSource.channelListeners[0].event, 'close');
       });
     });
 
     describe(`getChannel (${type})`, () => {
 
       it(`should repeatedly attempt to acquire a ${type} channel using the default retry strategy`, async () => {
-        const channelSourceStub = new ChannelSourceStub(3);
-        const channelSource = new ResilientChannelSource({ channelSource: channelSourceStub });
+        const stubChannelSource = new StubChannelSource(3);
+        const channelSource = new ResilientChannelSource({ channelSource: stubChannelSource });
 
         const before = Date.now();
         const channel = await channelSource[method]();
@@ -39,9 +38,9 @@ describe('ResilientChannelSource', () => {
       });
 
       it(`should repeatedly attempt to acquire a ${type} channel using a custom retry strategy`, async () => {
-        const channelSourceStub = new ChannelSourceStub(3);
+        const stubChannelSource = new StubChannelSource(3);
         const retryStrategy = () => 100;
-        const channelSource = new ResilientChannelSource({ channelSource: channelSourceStub, retryStrategy });
+        const channelSource = new ResilientChannelSource({ channelSource: stubChannelSource, retryStrategy });
 
         const before = Date.now();
         const channel = await channelSource[method]();
@@ -55,9 +54,9 @@ describe('ResilientChannelSource', () => {
       });
 
       it(`should give up attempting to acquire a ${type} channel when retry stratgey returns a negative`, async () => {
-        const channelSourceStub = new ChannelSourceStub(3);
+        const stubChannelSource = new StubChannelSource(3);
         const retryStrategy = () => -1;
-        const channelSource = new ResilientChannelSource({ channelSource: channelSourceStub, retryStrategy });
+        const channelSource = new ResilientChannelSource({ channelSource: stubChannelSource, retryStrategy });
 
         await rejects(() => channelSource[method](), /Oh Noes/);
       });
@@ -67,17 +66,17 @@ describe('ResilientChannelSource', () => {
   describe('close', async () => {
 
     it('should cancel inflight retry attempts', async () => {
-      const channelSourceStub = new ChannelSourceStub();
+      const stubChannelSource = new StubChannelSource();
       const retryStrategy = () => 100;
-      const channelSource = new ResilientChannelSource({ channelSource: channelSourceStub, retryStrategy });
+      const channelSource = new ResilientChannelSource({ channelSource: stubChannelSource, retryStrategy });
 
       setTimeout(() => channelSource.close(), 200);
       await rejects(() => channelSource.getChannel(), /The channel source is closed/);
     });
 
     it('should reject attempts to get a channel when closed', async () => {
-      const channelSourceStub = new ChannelSourceStub();
-      const channelSource = new ResilientChannelSource({ channelSource: channelSourceStub });
+      const stubChannelSource = new StubChannelSource();
+      const channelSource = new ResilientChannelSource({ channelSource: stubChannelSource });
 
       await channelSource.close();
 
@@ -85,15 +84,15 @@ describe('ResilientChannelSource', () => {
     });
 
     it('should tolerate repeated closures', async () => {
-      const channelSourceStub = new ChannelSourceStub();
-      const channelSource = new ResilientChannelSource({ channelSource: channelSourceStub });
+      const stubChannelSource = new StubChannelSource();
+      const channelSource = new ResilientChannelSource({ channelSource: stubChannelSource });
       await channelSource.close();
       await channelSource.close();
     });
   });
 });
 
-class ChannelSourceStub {
+class StubChannelSource {
   constructor(attempts = 100) {
     this.attempts = attempts;
     this.attempt = 0;

@@ -13,23 +13,37 @@ describe('AmqplibConnectionSource', () => {
     decorator = new ConnectionDecorator({ counter: new Counter() });
   });
 
-  describe('x_scamp', () => {
+  describe('registerConnectionListener', () => {
 
-    it('should assign x_scamp.id with default parameters', async () => {
+    it('should add registered listeners to new connections', async() => {
+      let events = 0;
+      const connectionSource = new AmqplibConnectionSource({ amqplib, decorator });
+
+      connectionSource.registerConnectionListener('close', () => events++ );
+      const connection = await connectionSource.getConnection();
+      connection.emit('close');
+
+      eq(events, 1);
+    });
+  });
+
+  describe('getConnection', () => {
+
+    it('should decorate connection with x_scamp.id using default parameters', async () => {
       const connectionSource = new AmqplibConnectionSource({ amqplib, decorator });
 
       const connection = await connectionSource.getConnection();
       eq(connection.x_scamp.id, 'amqp://guest@localhost:5672/?1');
     });
 
-    it('should assign x_scamp.id with explicit parameters', async () => {
+    it('should decorate connection with x_scamp.id using explicit parameters', async () => {
       const connectionSource = new AmqplibConnectionSource({ amqplib, decorator, params: { protocol: 'amqps', hostname: 'foo', username: 'bar', port: 123, vhost: 'baz' } });
 
       const connection = await connectionSource.getConnection();
       eq(connection.x_scamp.id, 'amqps://bar@foo:123/baz?1');
     });
 
-    it('should assign x_scamp.id with default vhost', async () => {
+    it('should decorate connection with x_scamp.id using default vhost', async () => {
       const connectionSource = new AmqplibConnectionSource({ amqplib, decorator, params: { vhost: '/' } });
 
       const connection = await connectionSource.getConnection();

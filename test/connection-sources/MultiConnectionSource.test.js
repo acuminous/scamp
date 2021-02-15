@@ -5,13 +5,32 @@ const { MultiConnectionSource } = require('../..');
 
 describe('MultiConnectionSource', () => {
 
+  describe('registerConnectionListener', () => {
+
+    it('should add registered listeners to all underlying connection sources', async() => {
+      const connectionSources = [
+        new StubConnectionSource(1),
+        new StubConnectionSource(2),
+        new StubConnectionSource(3),
+      ];
+      const connectionSource = new MultiConnectionSource({ connectionSources });
+
+      connectionSource.registerConnectionListener('close', () =>  {});
+
+      connectionSources.forEach(stubConnectionSource => {
+        eq(stubConnectionSource.connectionListeners.length, 1);
+        eq(stubConnectionSource.connectionListeners[0].event, 'close');
+      });
+    });
+  });
+
   describe('getConnection', () => {
 
     it('should acquire connections from each source in turn', async () => {
       const connectionSources = [
-        new ConnectionSourceStub(1),
-        new ConnectionSourceStub(2),
-        new ConnectionSourceStub(3),
+        new StubConnectionSource(1),
+        new StubConnectionSource(2),
+        new StubConnectionSource(3),
       ];
       const connectionSource = new MultiConnectionSource({ connectionSources });
       const connection1 = await connectionSource.getConnection();
@@ -43,9 +62,14 @@ describe('MultiConnectionSource', () => {
   });
 });
 
-class ConnectionSourceStub {
+class StubConnectionSource {
   constructor(id) {
     this.id = id;
+    this.connectionListeners = [];
+  }
+
+  registerConnectionListener(event, listener) {
+    this.connectionListeners.push({ event, listener });
   }
 
   async getConnection() {

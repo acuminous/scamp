@@ -5,9 +5,23 @@ const { StickyConnectionSource, ScampEvent } = require('../..');
 
 describe('StickyConnectionSource', () => {
 
+  describe('registerConnectionListener', () => {
+
+    it('should add registered listeners to underlying connection source', async() => {
+      const stubConnectionSource = new StubConnectionSource();
+      const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
+
+      connectionSource.registerConnectionListener('close', () =>  {});
+
+      eq(stubConnectionSource.connectionListeners.length, 1);
+      eq(stubConnectionSource.connectionListeners[0].event, 'close');
+    });
+  });
+
   describe('getConnection', () => {
+
     it('should acquire a new connection when the cache is empty', async () => {
-      const stubConnectionSource = new ConnectionSourceStub();
+      const stubConnectionSource = new StubConnectionSource();
       const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
 
       const connection = await connectionSource.getConnection();
@@ -16,7 +30,7 @@ describe('StickyConnectionSource', () => {
     });
 
     it('should reuse the existing connection when the cache is primed', async () => {
-      const stubConnectionSource = new ConnectionSourceStub();
+      const stubConnectionSource = new StubConnectionSource();
       const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
 
       const connection1 = await connectionSource.getConnection();
@@ -27,7 +41,7 @@ describe('StickyConnectionSource', () => {
     });
 
     it('should acquire a new connection after loss', async () => {
-      const stubConnectionSource = new ConnectionSourceStub();
+      const stubConnectionSource = new StubConnectionSource();
       const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
 
       const connection1 = await connectionSource.getConnection();
@@ -40,7 +54,7 @@ describe('StickyConnectionSource', () => {
     });
 
     it('should synchronise new connection acquisition', async () => {
-      const stubConnectionSource = new ConnectionSourceStub();
+      const stubConnectionSource = new StubConnectionSource();
       const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
 
       const connection1 = await connectionSource.getConnection();
@@ -57,7 +71,7 @@ describe('StickyConnectionSource', () => {
   describe('close', async () => {
 
     it('should close cached connection', async () => {
-      const stubConnectionSource = new ConnectionSourceStub();
+      const stubConnectionSource = new StubConnectionSource();
       const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
 
       const connection = await connectionSource.getConnection();
@@ -68,7 +82,7 @@ describe('StickyConnectionSource', () => {
     });
 
     it('should reject attempts to get a connection when closed', async () => {
-      const stubConnectionSource = new ConnectionSourceStub();
+      const stubConnectionSource = new StubConnectionSource();
       const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
       await connectionSource.close();
 
@@ -76,7 +90,7 @@ describe('StickyConnectionSource', () => {
     });
 
     it('should tolerate repeated closures', async () => {
-      const stubConnectionSource = new ConnectionSourceStub();
+      const stubConnectionSource = new StubConnectionSource();
       const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
       await connectionSource.close();
       await connectionSource.close();
@@ -84,9 +98,14 @@ describe('StickyConnectionSource', () => {
   });
 });
 
-class ConnectionSourceStub {
+class StubConnectionSource {
   constructor() {
     this.id = 1;
+    this.connectionListeners = [];
+  }
+
+  registerConnectionListener(event, listener) {
+    this.connectionListeners.push({ event, listener });
   }
 
   async getConnection() {
