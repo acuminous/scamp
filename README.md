@@ -103,11 +103,11 @@ const amqplib = require('amqplib');
 const { DedicatedConnectionSource, DedicatedChannelSource } = require('scamp');
 const optionSets = [
   { 
-    connectionOptions: { hostname: 'rabbitmq-primary.example.com' } },
+    connectionOptions: { hostname: 'rabbitmq-primary.example.com' },
     socketOptions: { timeout: 10000 },
   },
   { 
-    connectionOptions: { hostname: 'rabbitmq-secondary.example.com' } },
+    connectionOptions: { hostname: 'rabbitmq-secondary.example.com' },
     socketOptions: { timeout: 10000 },
   },
 ];
