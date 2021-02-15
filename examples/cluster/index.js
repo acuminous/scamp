@@ -2,11 +2,11 @@
 
 const amqplib = require('amqplib');
 const { shuffle } = require('d3');
-const { HighlyAvailableConnectionSource, StickyConnectionSource, StickyChannelSource, ResilientChannelSource, AmqplibChannelSource, ScampEvent } = require('../..');
+const { HighAvailabiltyConnectionSource, StickyConnectionSource, StickyChannelSource, ResilientChannelSource, AmqplibChannelSource, ScampEvent } = require('../..');
 const keepAlive = setInterval(() => {}, 600000);
 const nodes = shuffle([ 5672, 5673, 5674 ]).map(port => ({ port }));
 
-const [ topologyConnectionSource, producerConnectionSource, consumerConnectionSource ] = new Array(3).fill().map(() => new HighlyAvailableConnectionSource({ amqplib, nodes })
+const [ topologyConnectionSource, producerConnectionSource, consumerConnectionSource ] = new Array(3).fill().map(() => new HighAvailabiltyConnectionSource({ amqplib, nodes })
   .registerConnectionListener('error', console.error)
   .registerConnectionListener(ScampEvent.ACQUIRED, ({ x_scamp }) => console.log('Connected to', x_scamp.id)));
 
@@ -15,11 +15,7 @@ const [ topologyConnectionSource, producerConnectionSource, consumerConnectionSo
     await createTopology(topologyConnectionSource);
     const cancelProducer = await produce(producerConnectionSource);
     const cancelConsumer = await consume(consumerConnectionSource);
-    process.once('SIGINT', async () => {
-      console.log('Interupted');
-      await Promise.all([cancelProducer(), cancelConsumer]);
-      clearInterval(keepAlive);
-    });
+    addShutdownListerners(cancelProducer, cancelConsumer);
   } catch (err) {
     console.error(err);
   }
@@ -49,6 +45,7 @@ async function produce(connectionSource) {
     await channelSource.close();
     await channel.close();
     await channel.connection.close();
+    console.log('Producer cancelled');
   };
 }
 
@@ -57,11 +54,8 @@ async function consume(connectionSource) {
     .registerChannelListener('error', console.error);
 
   const channel = await channelSource.getChannel();
-  const consumerTag = await channel.consume('test', async (message) => {
-    if (message === null) {
-      await channel.cancel(consumerTag);
-      return;
-    }
+  const { consumerTag } = await channel.consume('test', async (message) => {
+    if (message === null) return;
 
     const content = message.content.toString();
     console.log('>>>', content);
@@ -77,6 +71,7 @@ async function consume(connectionSource) {
     await channelSource.close();
     await channel.close();
     await channel.connection.close();
+    console.log('Consumer cancelled');
   };
 }
 
@@ -86,4 +81,15 @@ function createResilientChannelSource({ connectionSource }) {
     .registerChannelListener('error', console.error);
   const stickyChannelSource = new StickyChannelSource({ channelSource: amqplibChannelSource });
   return new ResilientChannelSource({ channelSource: stickyChannelSource });
+}
+
+function addShutdownListerners(...tasks) {
+  ['SIGINT', 'SIGTERM'].forEach(event => process.on(event, () => shutdown(tasks)));
+}
+
+async function shutdown(tasks) {
+  console.log('Shutting Down');
+  await Promise.all(tasks.map(task => task()));
+  clearInterval(keepAlive);
+  console.log('Goodbye');
 }
