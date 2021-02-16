@@ -1,10 +1,5 @@
-<<<<<<< HEAD
-# Scamp
-Scamp is an advanced Node.js client for RabbitMQ.
-=======
 # scamp
 An advance Node.js RabbitMQ client from the author of [Rascal](https://github.com/guidesmiths/rascal). It is in the early stages of development, has an unstable API and is **not production ready**.
->>>>>>> Add stubs
 
 ## Connection Topologies
 Scamp allows you to choose your connection topology by providing a range of pluggable connection and channel sources. For example...
@@ -80,7 +75,7 @@ const socketOptions = { timeout: 10000 };
 const channelSources = [
   new DedicatedChannelSource({ connectionSource: new DedicatedConnectionSource({ amqplib, connectionOptions, socketOptions }) }),
   new DedicatedChannelSource({ connectionSource: new DedicatedConnectionSource({ amqplib, connectionOptions, socketOptions }) }),
-];  
+];
 const channelSource = new MultiChannelSource({ channelSources });
 
 const channel = await channelSource.getChannel();
@@ -106,11 +101,11 @@ const channel = await channelSource.getChannel();
 const amqplib = require('amqplib');
 const { DedicatedConnectionSource, DedicatedChannelSource } = require('scamp');
 const optionSets = [
-  { 
+  {
     connectionOptions: { hostname: 'rabbitmq-primary.example.com' },
     socketOptions: { timeout: 10000 },
   },
-  { 
+  {
     connectionOptions: { hostname: 'rabbitmq-secondary.example.com' },
     socketOptions: { timeout: 10000 },
   },
