@@ -1,8 +1,12 @@
+<<<<<<< HEAD
 # Scamp
 Scamp is an advanced Node.js client for RabbitMQ.
+=======
+# scamp
+An advance Node.js RabbitMQ client from the author of [Rascal](https://github.com/guidesmiths/rascal). It is in the early stages of development, has an unstable API and is **not production ready**.
+>>>>>>> Add stubs
 
 ## Connection Topologies
-
 Scamp allows you to choose your connection topology by providing a range of pluggable connection and channel sources. For example...
 
 
