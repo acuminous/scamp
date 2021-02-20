@@ -1,5 +1,5 @@
 const { strictEqual: eq, notStrictEqual: neq, rejects, ok } = require('assert');
-const { CachingConnectionSource, StubConnectionSource, ScampEvent } = require('../..');
+const { CachingConnectionSource, StubConnectionSource, ScampEvents } = require('../..');
 
 describe('CachingConnectionSource', () => {
 
@@ -44,7 +44,7 @@ describe('CachingConnectionSource', () => {
       const connectionSource = new CachingConnectionSource({ connectionSource: stubConnectionSource });
 
       const connection1 = await connectionSource.getConnection();
-      connection1.emit(ScampEvent.LOST);
+      connection1.emit(ScampEvents.LOST);
 
       const connection2 = await connectionSource.getConnection();
 

@@ -108,7 +108,7 @@ The connection and channels will automatically recover from errors. Repeatly cal
       └─────────────────────────┘                                            └─────────────────────────┘
 ```js
 const amqplib = require('amqplib');
-const { ReliableConnectionSource, ReliableChannelSource, RotatingConnectionSource, ScampEvent } = require('scamp');
+const { ReliableConnectionSource, ReliableChannelSource, RotatingConnectionSource, ScampEvents } = require('scamp');
 const connectionOptions = { hostname: 'rabbitmq.example.com' };
 const socketOptions = { timeout: 10000 };
 

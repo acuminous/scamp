@@ -1,5 +1,5 @@
 const { strictEqual: eq, rejects } = require('assert');
-const { StubAmqplib, AmqplibConnectionSource, Counter, ScampEvent } = require('../..');
+const { StubAmqplib, AmqplibConnectionSource, Counter, ScampEvents } = require('../..');
 
 describe('AmqplibConnectionSource', () => {
 
@@ -65,7 +65,7 @@ describe('AmqplibConnectionSource', () => {
       const connection = await connectionSource.getConnection();
       let events = 0;
 
-      connection.on(ScampEvent.LOST, () => events++);
+      connection.on(ScampEvents.LOST, () => events++);
 
       connection.emit('close');
 
@@ -76,7 +76,7 @@ describe('AmqplibConnectionSource', () => {
       let events = 0;
       const connectionSource = new AmqplibConnectionSource({ amqplib });
       const connection = await connectionSource.getConnection();
-      connection.on(ScampEvent.LOST, () => events++);
+      connection.on(ScampEvents.LOST, () => events++);
 
       connection.emit('error', new Error('Oh Noes'));
 
@@ -87,7 +87,7 @@ describe('AmqplibConnectionSource', () => {
       let events = 0;
       const connectionSource = new AmqplibConnectionSource({ amqplib });
       const connection = await connectionSource.getConnection();
-      connection.on(ScampEvent.LOST, () => events++);
+      connection.on(ScampEvents.LOST, () => events++);
       connection.on('error', () => {});
 
       connection.emit('error', new Error('Oh Noes'));
@@ -102,7 +102,7 @@ describe('AmqplibConnectionSource', () => {
       let events = 0;
       const connectionSource = new AmqplibConnectionSource({ amqplib });
       const connection = await connectionSource.getConnection();
-      connection.on(ScampEvent.LOST, () => events++);
+      connection.on(ScampEvents.LOST, () => events++);
       await connectionSource.close();
 
       connection.emit('close');

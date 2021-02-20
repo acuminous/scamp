@@ -1,5 +1,5 @@
 const { strictEqual: eq, ok, rejects } = require('assert');
-const { RecoveringChannelSource, ChannelType, StubChannelSource, StubConfirmChannel, StubChannel } = require('../..');
+const { RecoveringChannelSource, ChannelTypes, StubChannelSource, StubConfirmChannel, StubChannel } = require('../..');
 
 describe('RecoveringChannelSource', () => {
 
@@ -7,7 +7,7 @@ describe('RecoveringChannelSource', () => {
     throw new Error('Oh Noes!');
   };
 
-  [{ type: ChannelType.REGULAR, method: 'getChannel' }, { type: ChannelType.CONFIRM, method: 'getConfirmChannel' }].forEach(({ type, method }) => {
+  [{ type: ChannelTypes.REGULAR, method: 'getChannel' }, { type: ChannelTypes.CONFIRM, method: 'getConfirmChannel' }].forEach(({ type, method }) => {
 
     describe(`registerChannelListener (${type})`, () => {
 
@@ -29,7 +29,7 @@ describe('RecoveringChannelSource', () => {
       it(`should repeatedly attempt to acquire a ${type} channel using the default retry strategy`, async () => {
         const stubChannelSource = new StubChannelSource({ [method]: (count) => {
           if (count < 3) throw new Error('Oh Noes!');
-          return type === ChannelType.REGULAR ? new StubChannel() : new StubConfirmChannel();
+          return type === ChannelTypes.REGULAR ? new StubChannel() : new StubConfirmChannel();
         }});
         const channelSource = new RecoveringChannelSource({ channelSource: stubChannelSource });
 
@@ -47,7 +47,7 @@ describe('RecoveringChannelSource', () => {
       it(`should repeatedly attempt to acquire a ${type} channel using a custom retry strategy`, async () => {
         const stubChannelSource = new StubChannelSource({ [method]: (count) => {
           if (count < 3) throw new Error('Oh Noes!');
-          return type === ChannelType.REGULAR ? new StubChannel() : new StubConfirmChannel();
+          return type === ChannelTypes.REGULAR ? new StubChannel() : new StubConfirmChannel();
         }});
         const retryStrategy = () => 100;
         const channelSource = new RecoveringChannelSource({ channelSource: stubChannelSource, retryStrategy });

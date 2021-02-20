@@ -1,9 +1,9 @@
 const { ok, strictEqual: eq, notStrictEqual: neq, rejects } = require('assert');
-const { CachingChannelSource, StubChannelSource, ScampEvent, ChannelType } = require('../..');
+const { CachingChannelSource, StubChannelSource, ScampEvents, ChannelTypes } = require('../..');
 
 describe('CachingChannelSource', () => {
 
-  [{ type: ChannelType.REGULAR, method: 'getChannel' }, { type: ChannelType.CONFIRM, method: 'getConfirmChannel' }].forEach(({ type, method }) => {
+  [{ type: ChannelTypes.REGULAR, method: 'getChannel' }, { type: ChannelTypes.CONFIRM, method: 'getConfirmChannel' }].forEach(({ type, method }) => {
 
     describe('registerChannelListener', () => {
 
@@ -51,7 +51,7 @@ describe('CachingChannelSource', () => {
 
         const channel1 = await channelSource[method]();
 
-        channel1.emit(ScampEvent.LOST);
+        channel1.emit(ScampEvents.LOST);
 
         const channel2 = await channelSource[method]();
 

@@ -2,7 +2,7 @@
 
 const amqplib = require('amqplib');
 const { shuffle } = require('d3');
-const { HighAvailabiltyConnectionSource, ReliableChannelSource, ScampEvent } = require('../..');
+const { HighAvailabiltyConnectionSource, ReliableChannelSource, ScampEvents } = require('../..');
 const keepAlive = setInterval(() => {}, 600000);
 const optionSets = shuffle([ 5672, 5673, 5674 ]).map(port => ({ connectionOptions: { port }, socketOptions: { timeout: 5000 } }));
 
@@ -20,7 +20,7 @@ const optionSets = shuffle([ 5672, 5673, 5674 ]).map(port => ({ connectionOption
 async function createTopology() {
   const connectionSource = new HighAvailabiltyConnectionSource({ amqplib, optionSets })
     .registerConnectionListener('error', console.error)
-    .registerConnectionListener(ScampEvent.ACQUIRED, ({ x_scamp }) => console.log('Connected to', x_scamp.id));
+    .registerConnectionListener(ScampEvents.ACQUIRED, ({ x_scamp }) => console.log('Connected to', x_scamp.id));
 
   const channelSource = new ReliableChannelSource({ connectionSource })
     .registerChannelListener('error', console.error);
@@ -34,7 +34,7 @@ async function createTopology() {
 async function produce() {
   const connectionSource = new HighAvailabiltyConnectionSource({ amqplib, optionSets })
     .registerConnectionListener('error', console.error)
-    .registerConnectionListener(ScampEvent.ACQUIRED, ({ x_scamp }) => console.log('Connected to', x_scamp.id));
+    .registerConnectionListener(ScampEvents.ACQUIRED, ({ x_scamp }) => console.log('Connected to', x_scamp.id));
 
   const channelSource = new ReliableChannelSource({ connectionSource })
     .registerChannelListener('error', console.error);
@@ -57,7 +57,7 @@ async function produce() {
 async function consume() {
   const connectionSource = new HighAvailabiltyConnectionSource({ amqplib, optionSets })
     .registerConnectionListener('error', console.error)
-    .registerConnectionListener(ScampEvent.ACQUIRED, ({ x_scamp }) => console.log('Connected to', x_scamp.id));
+    .registerConnectionListener(ScampEvents.ACQUIRED, ({ x_scamp }) => console.log('Connected to', x_scamp.id));
 
   const channelSource = new ReliableChannelSource({ connectionSource })
     .registerChannelListener('error', console.error);
@@ -72,11 +72,11 @@ async function consume() {
   });
 
   const reconsume = () => consume(channelSource);
-  channel.once(ScampEvent.LOST, reconsume);
+  channel.once(ScampEvents.LOST, reconsume);
 
   return async () => {
     await channel.cancel(consumerTag);
-    channel.removeListener(ScampEvent.LOST, reconsume);
+    channel.removeListener(ScampEvents.LOST, reconsume);
     await channelSource.close();
     await channel.close();
     await channel.connection.close();

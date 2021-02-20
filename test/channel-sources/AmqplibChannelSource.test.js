@@ -1,5 +1,5 @@
 const { strictEqual: eq, rejects } = require('assert');
-const { AmqplibChannelSource, ScampEvent, CachingConnectionSource, StubConnectionSource, Counter } = require('../..');
+const { AmqplibChannelSource, ScampEvents, CachingConnectionSource, StubConnectionSource, Counter } = require('../..');
 
 describe('AmqplibChannelSource', () => {
 
@@ -79,7 +79,7 @@ describe('AmqplibChannelSource', () => {
       let events = 0;
       const channelSource = new AmqplibChannelSource({ connectionSource });
       const channel = await channelSource.getChannel();
-      channel.on(ScampEvent.LOST, () => events++);
+      channel.on(ScampEvents.LOST, () => events++);
 
       channel.emit('close');
 
@@ -90,7 +90,7 @@ describe('AmqplibChannelSource', () => {
       let events = 0;
       const channelSource = new AmqplibChannelSource({ connectionSource });
       const channel = await channelSource.getChannel();
-      channel.on(ScampEvent.LOST, () => events++);
+      channel.on(ScampEvents.LOST, () => events++);
 
       channel.emit('error');
 
@@ -101,7 +101,7 @@ describe('AmqplibChannelSource', () => {
       let events = 0;
       const channelSource = new AmqplibChannelSource({ connectionSource });
       const channel = await channelSource.getChannel();
-      channel.on(ScampEvent.LOST, () => events++);
+      channel.on(ScampEvents.LOST, () => events++);
       await channelSource.close();
 
       channel.emit('close');
@@ -113,7 +113,7 @@ describe('AmqplibChannelSource', () => {
       let events = 0;
       const channelSource = new AmqplibChannelSource({ connectionSource });
       const channel = await channelSource.getChannel();
-      channel.on(ScampEvent.LOST, () => events++);
+      channel.on(ScampEvents.LOST, () => events++);
       channel.on('error', () => {});
 
       channel.emit('error', new Error('Oh Noes'));
