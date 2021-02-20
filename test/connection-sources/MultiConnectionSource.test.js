@@ -1,7 +1,6 @@
 const { strictEqual: eq, rejects } = require('assert');
 const { describe, it } = require('zunit');
-const { EventEmitter } = require('events');
-const { MultiConnectionSource } = require('../..');
+const { MultiConnectionSource, StubConnectionSource } = require('../..');
 
 describe('MultiConnectionSource', () => {
 
@@ -9,9 +8,9 @@ describe('MultiConnectionSource', () => {
 
     it('should add registered listeners to all underlying connection sources', async() => {
       const connectionSources = [
-        new StubConnectionSource(1),
-        new StubConnectionSource(2),
-        new StubConnectionSource(3),
+        new StubConnectionSource(),
+        new StubConnectionSource(),
+        new StubConnectionSource(),
       ];
       const connectionSource = new MultiConnectionSource({ connectionSources });
 
@@ -28,9 +27,9 @@ describe('MultiConnectionSource', () => {
 
     it('should acquire connections from each source in turn', async () => {
       const connectionSources = [
-        new StubConnectionSource(1),
-        new StubConnectionSource(2),
-        new StubConnectionSource(3),
+        new StubConnectionSource({ id: 1 }),
+        new StubConnectionSource({ id: 2 }),
+        new StubConnectionSource({ id: 3 }),
       ];
       const connectionSource = new MultiConnectionSource({ connectionSources });
       const connection1 = await connectionSource.getConnection();
@@ -38,10 +37,10 @@ describe('MultiConnectionSource', () => {
       const connection3 = await connectionSource.getConnection();
       const connection4 = await connectionSource.getConnection();
 
-      eq(connection1.id, 1);
-      eq(connection2.id, 2);
-      eq(connection3.id, 3);
-      eq(connection4.id, 1);
+      eq(connection1.x_scamp.id, '1#1');
+      eq(connection2.x_scamp.id, '2#1');
+      eq(connection3.x_scamp.id, '3#1');
+      eq(connection4.x_scamp.id, '1#2');
     });
   });
 
@@ -61,18 +60,3 @@ describe('MultiConnectionSource', () => {
     });
   });
 });
-
-class StubConnectionSource {
-  constructor(id) {
-    this.id = id;
-    this.connectionListeners = [];
-  }
-
-  registerConnectionListener(event, listener) {
-    this.connectionListeners.push({ event, listener });
-  }
-
-  async getConnection() {
-    return Object.assign(new EventEmitter(), { id: this.id });
-  }
-}

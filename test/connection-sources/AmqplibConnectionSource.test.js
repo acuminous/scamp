@@ -1,7 +1,6 @@
 const { strictEqual: eq, rejects } = require('assert');
 const { beforeEach, describe, it } = require('zunit');
-const { EventEmitter } = require('events');
-const { AmqplibConnectionSource, ConnectionDecorator, Counter, ScampEvent } = require('../..');
+const { StubAmqplib, AmqplibConnectionSource, ConnectionDecorator, Counter, ScampEvent } = require('../..');
 
 describe('AmqplibConnectionSource', () => {
 
@@ -9,7 +8,7 @@ describe('AmqplibConnectionSource', () => {
   let decorator;
 
   beforeEach(() => {
-    amqplib = new AmqplibStub();
+    amqplib = new StubAmqplib();
     decorator = new ConnectionDecorator({ counter: new Counter() });
   });
 
@@ -33,31 +32,31 @@ describe('AmqplibConnectionSource', () => {
       const connectionSource = new AmqplibConnectionSource({ amqplib, decorator });
 
       const connection = await connectionSource.getConnection();
-      eq(connection.x_scamp.id, 'amqp://guest@localhost:5672/?1');
+      eq(connection.x_scamp.id, 'amqp://guest@localhost:5672#1');
     });
 
     it('should decorate connection with x_scamp.id using explicit parameters', async () => {
       const connectionSource = new AmqplibConnectionSource({ amqplib, decorator, connectionOptions: { protocol: 'amqps', hostname: 'foo', username: 'bar', port: 123, vhost: 'baz' } });
 
       const connection = await connectionSource.getConnection();
-      eq(connection.x_scamp.id, 'amqps://bar@foo:123/baz?1');
+      eq(connection.x_scamp.id, 'amqps://bar@foo:123/baz#1');
     });
 
     it('should decorate connection with x_scamp.id using default vhost', async () => {
       const connectionSource = new AmqplibConnectionSource({ amqplib, decorator, connectionOptions: { vhost: '/' } });
 
       const connection = await connectionSource.getConnection();
-      eq(connection.x_scamp.id, 'amqp://guest@localhost:5672/?1');
+      eq(connection.x_scamp.id, 'amqp://guest@localhost:5672/#1');
     });
 
     it('should assign incremental x_scamp.id', async () => {
       const connectionSource = new AmqplibConnectionSource({ amqplib, decorator });
 
       const connection1 = await connectionSource.getConnection();
-      eq(connection1.x_scamp.id, 'amqp://guest@localhost:5672/?1');
+      eq(connection1.x_scamp.id, 'amqp://guest@localhost:5672#1');
 
       const connection2 = await connectionSource.getConnection();
-      eq(connection2.x_scamp.id, 'amqp://guest@localhost:5672/?2');
+      eq(connection2.x_scamp.id, 'amqp://guest@localhost:5672#2');
     });
   });
 
@@ -145,9 +144,3 @@ describe('AmqplibConnectionSource', () => {
     });
   });
 });
-
-class AmqplibStub {
-  async connect() {
-    return new EventEmitter();
-  }
-}

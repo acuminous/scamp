@@ -1,7 +1,6 @@
-const { strictEqual: eq, rejects } = require('assert');
+const { strictEqual: eq, notStrictEqual: neq, rejects, ok } = require('assert');
 const { describe, it } = require('zunit');
-const { EventEmitter } = require('events');
-const { StickyConnectionSource, ScampEvent } = require('../..');
+const { StickyConnectionSource, StubConnectionSource, ScampEvent } = require('../..');
 
 describe('StickyConnectionSource', () => {
 
@@ -26,7 +25,7 @@ describe('StickyConnectionSource', () => {
 
       const connection = await connectionSource.getConnection();
 
-      eq(connection.x_scamp.id, 1);
+      ok(connection);
     });
 
     it('should reuse the existing connection when the cache is primed', async () => {
@@ -36,8 +35,7 @@ describe('StickyConnectionSource', () => {
       const connection1 = await connectionSource.getConnection();
       const connection2 = await connectionSource.getConnection();
 
-      eq(connection1.x_scamp.id, 1);
-      eq(connection2.x_scamp.id, 1);
+      eq(connection1, connection2);
     });
 
     it('should acquire a new connection after loss', async () => {
@@ -49,21 +47,20 @@ describe('StickyConnectionSource', () => {
 
       const connection2 = await connectionSource.getConnection();
 
-      eq(connection1.x_scamp.id, 1);
-      eq(connection2.x_scamp.id, 2);
+      ok(connection1);
+      ok(connection2);
+
+      neq(connection1, connection2);
     });
 
     it('should synchronise new connection acquisition', async () => {
       const stubConnectionSource = new StubConnectionSource();
       const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
 
-      const connection1 = await connectionSource.getConnection();
-      eq(connection1.x_scamp.id, 1);
-      connection1.emit(ScampEvent.LOST);
-
       const connections = await Promise.all(new Array(100).fill().map(() => connectionSource.getConnection()));
-      connections.forEach(connection2 => {
-        eq(connection2.x_scamp.id, 2);
+      connections.reduce((c1, c2) => {
+        eq(c1, c2);
+        return c1;
       });
     });
   });
@@ -78,7 +75,7 @@ describe('StickyConnectionSource', () => {
 
       await connectionSource.close();
 
-      eq(connection.x_scamp.open, false);
+      eq(connection.closed, true);
     });
 
     it('should reject attempts to get a connection when closed', async () => {
@@ -97,19 +94,3 @@ describe('StickyConnectionSource', () => {
     });
   });
 });
-
-class StubConnectionSource {
-  constructor() {
-    this.id = 1;
-    this.connectionListeners = [];
-  }
-
-  registerConnectionListener(event, listener) {
-    this.connectionListeners.push({ event, listener });
-  }
-
-  async getConnection() {
-    const x_scamp = { id: this.id++, type: 'confirm', open: true };
-    return Object.assign(new EventEmitter(), { x_scamp }, { close: async () => x_scamp.open = false });
-  }
-}

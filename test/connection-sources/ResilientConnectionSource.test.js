@@ -1,9 +1,19 @@
 const { strictEqual: eq, ok, rejects } = require('assert');
 const { describe, it } = require('zunit');
 const { EventEmitter } = require('events');
-const { ResilientConnectionSource } = require('../..');
+const { ResilientConnectionSource, StubConnectionSource } = require('../..');
+const { StubConnection } = require('../../lib/stubs');
 
 describe('ResilientConnectionSource', () => {
+
+  const FAIL_THREE_TIMES = async (count) => {
+    if (count < 3) throw new Error('Oh Noes!');
+    return new StubConnection();
+  };
+
+  const FAIL_FOREVER = () => {
+    throw new Error('Oh Noes!');
+  };
 
   describe('registerConnectionListener', () => {
 
@@ -21,7 +31,7 @@ describe('ResilientConnectionSource', () => {
   describe('getConnection', () => {
 
     it('should repeatedly attempt to acquire a connection using the default retry strategy', async () => {
-      const stubConnectionSource = new StubConnectionSource(3);
+      const stubConnectionSource = new StubConnectionSource({ aquire: FAIL_THREE_TIMES });
       const connectionSource = new ResilientConnectionSource({ connectionSource: stubConnectionSource });
 
       const before = Date.now();
@@ -36,7 +46,7 @@ describe('ResilientConnectionSource', () => {
     });
 
     it('should repeatedly attempt to acquire a connection using a custom retry strategy', async () => {
-      const stubConnectionSource = new StubConnectionSource(3);
+      const stubConnectionSource = new StubConnectionSource({ aquire: FAIL_THREE_TIMES });
       const retryStrategy = () => 100;
       const connectionSource = new ResilientConnectionSource({ connectionSource: stubConnectionSource, retryStrategy });
 
@@ -52,7 +62,7 @@ describe('ResilientConnectionSource', () => {
     });
 
     it('should give up attempting to acquire a connection when retry stratgey returns a negative', async () => {
-      const stubConnectionSource = new StubConnectionSource(3);
+      const stubConnectionSource = new StubConnectionSource({ aquire: FAIL_FOREVER });
       const retryStrategy = () => -1;
       const connectionSource = new ResilientConnectionSource({ connectionSource: stubConnectionSource, retryStrategy });
 
@@ -63,7 +73,8 @@ describe('ResilientConnectionSource', () => {
   describe('close', async () => {
 
     it('should cancel inflight retry attempts', async () => {
-      const stubConnectionSource = new StubConnectionSource();
+      const stubConnectionSource = new StubConnectionSource({ aquire: FAIL_FOREVER });
+
       const retryStrategy = () => 100;
       const connectionSource = new ResilientConnectionSource({ connectionSource: stubConnectionSource, retryStrategy });
 
@@ -72,7 +83,7 @@ describe('ResilientConnectionSource', () => {
     });
 
     it('should reject attempts to get a connection when closed', async () => {
-      const stubConnectionSource = new StubConnectionSource();
+      const stubConnectionSource = new XStubConnectionSource();
       const connectionSource = new ResilientConnectionSource({ connectionSource: stubConnectionSource });
 
       await connectionSource.close();
@@ -81,7 +92,7 @@ describe('ResilientConnectionSource', () => {
     });
 
     it('should tolerate repeated closures', async () => {
-      const stubConnectionSource = new StubConnectionSource();
+      const stubConnectionSource = new StubConnectionSource({ aquire: FAIL_FOREVER });
       const connectionSource = new ResilientConnectionSource({ connectionSource: stubConnectionSource });
       await connectionSource.close();
       await connectionSource.close();
@@ -89,7 +100,7 @@ describe('ResilientConnectionSource', () => {
   });
 });
 
-class StubConnectionSource {
+class XStubConnectionSource {
   constructor(attempts = 100) {
     this.attempts = attempts;
     this.attempt = 0;

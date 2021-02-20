@@ -58,7 +58,7 @@ describe('StubConnection', () => {
     it('should reject close requests when borked', async () => {
       const stubConnection = new StubConnection({ error: new Error('Oh Noes') });
 
-      await rejects(() => stubConnection.createConfirmChannel(), /IllegalOperationError: Connection closed \(Error: Oh Noes\)/);
+      await rejects(() => stubConnection.close(), /IllegalOperationError: Connection closed \(Error: Oh Noes\)/);
     });
   });
 
@@ -73,19 +73,19 @@ describe('StubConnection', () => {
     });
 
     it('should reject regular channel requests when closed', async () => {
-      const stubConnection = new StubConnection({ closedBy: 'client' });
+      const stubConnection = new StubConnection({ closed: true });
 
       await rejects(() => stubConnection.createChannel(), /IllegalOperationError: Connection closed \(by client\)/);
     });
 
     it('should reject confirm channel requests when closed', async () => {
-      const stubConnection = new StubConnection({ closedBy: 'client' });
+      const stubConnection = new StubConnection({ closed: true });
 
       await rejects(() => stubConnection.createConfirmChannel(), /IllegalOperationError: Connection closed \(by client\)/);
     });
 
     it('should reject close requests when closed', async () => {
-      const stubConnection = new StubConnection({ closedBy: 'client' });
+      const stubConnection = new StubConnection({ closed: true });
 
       await rejects(() => stubConnection.close(), /IllegalOperationError: Connection closed \(by client\)/);
     });

@@ -4,7 +4,7 @@ const { EventEmitter } = require('events');
 const { AmqplibChannelSource, AmqplibConnectionSource, ConnectionDecorator, ChannelDecorator, Counter, ScampEvent } = require('../..');
 const { StickyConnectionSource } = require('../../lib/connection-sources');
 
-describe('AmqplibConnectionSource', () => {
+describe('AmqplibChannelSource', () => {
 
   let connectionSource;
   let decorator;
@@ -48,24 +48,24 @@ describe('AmqplibConnectionSource', () => {
       const channelSource = new AmqplibChannelSource({ connectionSource, decorator });
 
       const channel = await channelSource.getChannel();
-      eq(channel.x_scamp.id, 'amqp://guest@localhost:5672/?1-1');
+      eq(channel.x_scamp.id, 'amqp://guest@localhost:5672#1-1');
     });
 
     it('should decorate confirm channels with x_scamp.id', async () => {
       const channelSource = new AmqplibChannelSource({ connectionSource, decorator });
 
       const channel = await channelSource.getConfirmChannel();
-      eq(channel.x_scamp.id, 'amqp://guest@localhost:5672/?1-1');
+      eq(channel.x_scamp.id, 'amqp://guest@localhost:5672#1-1');
     });
 
     it('should assign incremental x_scamp.id', async () => {
       const channelSource = new AmqplibChannelSource({ connectionSource, decorator });
 
       const channel1 = await channelSource.getChannel();
-      eq(channel1.x_scamp.id, 'amqp://guest@localhost:5672/?1-1');
+      eq(channel1.x_scamp.id, 'amqp://guest@localhost:5672#1-1');
 
       const channel2 = await channelSource.getConfirmChannel();
-      eq(channel2.x_scamp.id, 'amqp://guest@localhost:5672/?1-2');
+      eq(channel2.x_scamp.id, 'amqp://guest@localhost:5672#1-2');
     });
   });
 
