@@ -1,7 +1,7 @@
 const { strictEqual: eq, rejects } = require('assert');
-const { MultiConnectionSource, StubConnectionSource } = require('../..');
+const { RotatingConnectionSource, StubConnectionSource } = require('../..');
 
-describe('MultiConnectionSource', () => {
+describe('RotatingConnectionSource', () => {
 
   describe('registerConnectionListener', () => {
 
@@ -12,7 +12,7 @@ describe('MultiConnectionSource', () => {
         new StubConnectionSource(),
         new StubConnectionSource(),
       ];
-      const connectionSource = new MultiConnectionSource({ connectionSources });
+      const connectionSource = new RotatingConnectionSource({ connectionSources });
       connectionSource.registerConnectionListener('close', () =>  events++);
 
       await Promise.all(new Array(connectionSources.length).fill().map(async () => {
@@ -32,7 +32,7 @@ describe('MultiConnectionSource', () => {
         new StubConnectionSource({ baseId: '2' }),
         new StubConnectionSource({ baseId: '3' }),
       ];
-      const connectionSource = new MultiConnectionSource({ connectionSources });
+      const connectionSource = new RotatingConnectionSource({ connectionSources });
       const connection1 = await connectionSource.getConnection();
       const connection2 = await connectionSource.getConnection();
       const connection3 = await connectionSource.getConnection();
@@ -48,14 +48,14 @@ describe('MultiConnectionSource', () => {
   describe('close', async () => {
 
     it('should reject attempts to get a connection when closed', async () => {
-      const connectionSource = new MultiConnectionSource({ connectionSources: [] });
+      const connectionSource = new RotatingConnectionSource({ connectionSources: [] });
       await connectionSource.close();
 
       await rejects(() => connectionSource.getConnection(), /The connection source is closed/);
     });
 
     it('should tolerate repeated closures', async () => {
-      const connectionSource = new MultiConnectionSource({ connectionSources: [] });
+      const connectionSource = new RotatingConnectionSource({ connectionSources: [] });
       await connectionSource.close();
       await connectionSource.close();
     });
