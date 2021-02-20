@@ -1,14 +1,14 @@
 const { strictEqual: eq, notStrictEqual: neq, rejects, ok } = require('assert');
-const { StickyConnectionSource, StubConnectionSource, ScampEvent } = require('../..');
+const { CachingConnectionSource, StubConnectionSource, ScampEvent } = require('../..');
 
-describe('StickyConnectionSource', () => {
+describe('CachingConnectionSource', () => {
 
   describe('registerConnectionListener', () => {
 
     it('should add registered listeners to underlying connection source', async() => {
       let events = 0;
       const stubConnectionSource = new StubConnectionSource();
-      const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
+      const connectionSource = new CachingConnectionSource({ connectionSource: stubConnectionSource });
       connectionSource.registerConnectionListener('close', () =>  events++);
 
       const connection = await connectionSource.getConnection();
@@ -22,7 +22,7 @@ describe('StickyConnectionSource', () => {
 
     it('should acquire a new connection when the cache is empty', async () => {
       const stubConnectionSource = new StubConnectionSource();
-      const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
+      const connectionSource = new CachingConnectionSource({ connectionSource: stubConnectionSource });
 
       const connection = await connectionSource.getConnection();
 
@@ -31,7 +31,7 @@ describe('StickyConnectionSource', () => {
 
     it('should reuse the existing connection when the cache is primed', async () => {
       const stubConnectionSource = new StubConnectionSource();
-      const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
+      const connectionSource = new CachingConnectionSource({ connectionSource: stubConnectionSource });
 
       const connection1 = await connectionSource.getConnection();
       const connection2 = await connectionSource.getConnection();
@@ -41,7 +41,7 @@ describe('StickyConnectionSource', () => {
 
     it('should acquire a new connection after loss', async () => {
       const stubConnectionSource = new StubConnectionSource();
-      const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
+      const connectionSource = new CachingConnectionSource({ connectionSource: stubConnectionSource });
 
       const connection1 = await connectionSource.getConnection();
       connection1.emit(ScampEvent.LOST);
@@ -56,7 +56,7 @@ describe('StickyConnectionSource', () => {
 
     it('should synchronise new connection acquisition', async () => {
       const stubConnectionSource = new StubConnectionSource();
-      const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
+      const connectionSource = new CachingConnectionSource({ connectionSource: stubConnectionSource });
 
       const connections = await Promise.all(new Array(100).fill().map(() => connectionSource.getConnection()));
       connections.reduce((c1, c2) => {
@@ -70,7 +70,7 @@ describe('StickyConnectionSource', () => {
 
     it('should close cached connection', async () => {
       const stubConnectionSource = new StubConnectionSource();
-      const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
+      const connectionSource = new CachingConnectionSource({ connectionSource: stubConnectionSource });
 
       const connection = await connectionSource.getConnection();
 
@@ -81,7 +81,7 @@ describe('StickyConnectionSource', () => {
 
     it('should reject attempts to get a connection when closed', async () => {
       const stubConnectionSource = new StubConnectionSource();
-      const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
+      const connectionSource = new CachingConnectionSource({ connectionSource: stubConnectionSource });
       await connectionSource.close();
 
       await rejects(() => connectionSource.getConnection(), /The connection source is closed/);
@@ -89,7 +89,7 @@ describe('StickyConnectionSource', () => {
 
     it('should tolerate repeated closures', async () => {
       const stubConnectionSource = new StubConnectionSource();
-      const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
+      const connectionSource = new CachingConnectionSource({ connectionSource: stubConnectionSource });
       await connectionSource.close();
       await connectionSource.close();
     });

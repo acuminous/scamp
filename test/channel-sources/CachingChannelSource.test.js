@@ -1,7 +1,7 @@
 const { ok, strictEqual: eq, notStrictEqual: neq, rejects } = require('assert');
-const { StickyChannelSource, StubChannelSource, ScampEvent, ChannelType } = require('../..');
+const { CachingChannelSource, StubChannelSource, ScampEvent, ChannelType } = require('../..');
 
-describe('StickyChannelSource', () => {
+describe('CachingChannelSource', () => {
 
   [{ type: ChannelType.REGULAR, method: 'getChannel' }, { type: ChannelType.CONFIRM, method: 'getConfirmChannel' }].forEach(({ type, method }) => {
 
@@ -10,7 +10,7 @@ describe('StickyChannelSource', () => {
       it('should add registered listeners to underlying channel source', async() => {
         let events = 0;
         const stubChannelSource = new StubChannelSource();
-        const channelSource = new StickyChannelSource({ channelSource: stubChannelSource });
+        const channelSource = new CachingChannelSource({ channelSource: stubChannelSource });
         channelSource.registerChannelListener('close', () => events++ );
 
         const channel = await channelSource[method]();
@@ -24,7 +24,7 @@ describe('StickyChannelSource', () => {
 
       it(`should acquire a new ${type} channel when the cache is empty`, async () => {
         const stubChannelSource = new StubChannelSource();
-        const channelSource = new StickyChannelSource({ channelSource: stubChannelSource });
+        const channelSource = new CachingChannelSource({ channelSource: stubChannelSource });
 
         const channel = await channelSource[method]();
 
@@ -35,7 +35,7 @@ describe('StickyChannelSource', () => {
 
       it(`should reuse the existing ${type} channel when the cache is primed`, async () => {
         const stubChannelSource = new StubChannelSource();
-        const channelSource = new StickyChannelSource({ channelSource: stubChannelSource });
+        const channelSource = new CachingChannelSource({ channelSource: stubChannelSource });
 
         const channel1 = await channelSource[method]();
         const channel2 = await channelSource[method]();
@@ -47,7 +47,7 @@ describe('StickyChannelSource', () => {
 
       it(`should acquire a new ${type} channel after loss`, async () => {
         const stubChannelSource = new StubChannelSource();
-        const channelSource = new StickyChannelSource({ channelSource: stubChannelSource });
+        const channelSource = new CachingChannelSource({ channelSource: stubChannelSource });
 
         const channel1 = await channelSource[method]();
 
@@ -62,7 +62,7 @@ describe('StickyChannelSource', () => {
 
       it(`should synchronise new ${type} channel acquisition`, async () => {
         const stubChannelSource = new StubChannelSource();
-        const channelSource = new StickyChannelSource({ channelSource: stubChannelSource });
+        const channelSource = new CachingChannelSource({ channelSource: stubChannelSource });
 
         const channels = await Promise.all(new Array(100).fill().map(() => channelSource[method]()));
         channels.reduce((channel1, channel2) => {
@@ -78,7 +78,7 @@ describe('StickyChannelSource', () => {
 
       it(`should close cached ${type} channels`, async () => {
         const stubChannelSource = new StubChannelSource();
-        const channelSource = new StickyChannelSource({ channelSource: stubChannelSource });
+        const channelSource = new CachingChannelSource({ channelSource: stubChannelSource });
 
         const channel = await channelSource[method]();
 
@@ -89,7 +89,7 @@ describe('StickyChannelSource', () => {
 
       it(`should reject attempts to get a ${type} channel when closed`, async () => {
         const stubChannelSource = new StubChannelSource();
-        const channelSource = new StickyChannelSource({ channelSource: stubChannelSource });
+        const channelSource = new CachingChannelSource({ channelSource: stubChannelSource });
         await channelSource.close();
 
         await rejects(() => channelSource[method](), /The channel source is closed/);
@@ -101,7 +101,7 @@ describe('StickyChannelSource', () => {
 
     it('should tolerate repeated closures', async () => {
       const stubChannelSource = new StubChannelSource();
-      const channelSource = new StickyChannelSource({ channelSource: stubChannelSource });
+      const channelSource = new CachingChannelSource({ channelSource: stubChannelSource });
       await channelSource.close();
       await channelSource.close();
     });

@@ -2,7 +2,7 @@
 
 const amqplib = require('amqplib');
 const { shuffle } = require('d3');
-const { HighAvailabiltyConnectionSource, DedicatedChannelSource, ScampEvent } = require('../..');
+const { HighAvailabiltyConnectionSource, ReliableChannelSource, ScampEvent } = require('../..');
 const keepAlive = setInterval(() => {}, 600000);
 const optionSets = shuffle([ 5672, 5673, 5674 ]).map(port => ({ connectionOptions: { port }, socketOptions: { timeout: 5000 } }));
 
@@ -22,7 +22,7 @@ async function createTopology() {
     .registerConnectionListener('error', console.error)
     .registerConnectionListener(ScampEvent.ACQUIRED, ({ x_scamp }) => console.log('Connected to', x_scamp.id));
 
-  const channelSource = new DedicatedChannelSource({ connectionSource })
+  const channelSource = new ReliableChannelSource({ connectionSource })
     .registerChannelListener('error', console.error);
 
   const channel = await channelSource.getChannel();
@@ -36,7 +36,7 @@ async function produce() {
     .registerConnectionListener('error', console.error)
     .registerConnectionListener(ScampEvent.ACQUIRED, ({ x_scamp }) => console.log('Connected to', x_scamp.id));
 
-  const channelSource = new DedicatedChannelSource({ connectionSource })
+  const channelSource = new ReliableChannelSource({ connectionSource })
     .registerChannelListener('error', console.error);
 
   const timer = setInterval(async () => {
@@ -59,7 +59,7 @@ async function consume() {
     .registerConnectionListener('error', console.error)
     .registerConnectionListener(ScampEvent.ACQUIRED, ({ x_scamp }) => console.log('Connected to', x_scamp.id));
 
-  const channelSource = new DedicatedChannelSource({ connectionSource })
+  const channelSource = new ReliableChannelSource({ connectionSource })
     .registerChannelListener('error', console.error);
 
   const channel = await channelSource.getChannel();

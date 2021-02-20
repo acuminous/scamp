@@ -18,11 +18,11 @@ Scamp allows you to choose your connection topology by providing a range of plug
       └─────────────────────────┘                                            └─────────────────────────┘
 ```js
 const amqplib = require('amqplib');
-const { DedicatedConnectionSource, DedicatedChannelSource } = require('scamp');
+const { DedicatedConnectionSource, ReliableChannelSource } = require('scamp');
 const connectionOptions = { hostname: 'rabbitmq.example.com' };
 const socketOptions = { timeout: 10000 };
 const connectionSource = new DedicatedConnectionSource({ amqplib, connectionOptions, socketOptions });
-const channelSource = new DedicatedChannelSource({ connectionSource });
+const channelSource = new ReliableChannelSource({ connectionSource });
 
 const channel = await channelSource.getChannel();
 ```
@@ -69,14 +69,14 @@ const channel = await channelSource.getChannel();
       └─────────────────────────┘                                            └─────────────────────────┘
 ```js
 const amqplib = require('amqplib');
-const { DedicatedConnectionSource, DedicatedChannelSource, MultiChannelSource } = require('scamp');
+const { DedicatedConnectionSource, ReliableChannelSource, RotatingConnectionSource } = require('scamp');
 const connectionOptions = { hostname: 'rabbitmq.example.com' };
 const socketOptions = { timeout: 10000 };
 const channelSources = [
-  new DedicatedChannelSource({ connectionSource: new DedicatedConnectionSource({ amqplib, connectionOptions, socketOptions }) }),
-  new DedicatedChannelSource({ connectionSource: new DedicatedConnectionSource({ amqplib, connectionOptions, socketOptions }) }),
+  new ReliableChannelSource({ connectionSource: new DedicatedConnectionSource({ amqplib, connectionOptions, socketOptions }) }),
+  new ReliableChannelSource({ connectionSource: new DedicatedConnectionSource({ amqplib, connectionOptions, socketOptions }) }),
 ];
-const channelSource = new MultiChannelSource({ channelSources });
+const channelSource = new RotatingConnectionSource({ channelSources });
 
 const channel = await channelSource.getChannel();
 ```
@@ -99,7 +99,7 @@ const channel = await channelSource.getChannel();
       └─────────────────────────┘                                            └─────────────────────────┘
 ```js
 const amqplib = require('amqplib');
-const { DedicatedConnectionSource, DedicatedChannelSource } = require('scamp');
+const { DedicatedConnectionSource, ReliableChannelSource } = require('scamp');
 const optionSets = [
   {
     connectionOptions: { hostname: 'rabbitmq-primary.example.com' },
@@ -111,7 +111,7 @@ const optionSets = [
   },
 ];
 const connectionSource = new HighAvailabilityConnectionSource({ amqplib, optionSets });
-const channelSource = new DedicatedChannelSource({ connectionSource });
+const channelSource = new ReliableChannelSource({ connectionSource });
 
 const channel = await channelSource.getChannel();
 ```

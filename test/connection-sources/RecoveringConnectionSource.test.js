@@ -1,8 +1,8 @@
 const { strictEqual: eq, ok, rejects } = require('assert');
-const { ResilientConnectionSource, StubConnectionSource } = require('../..');
+const { RecoveringConnectionSource, StubConnectionSource } = require('../..');
 const { StubConnection } = require('../../lib/stubs');
 
-describe('ResilientConnectionSource', () => {
+describe('RecoveringConnectionSource', () => {
 
   const FAIL_THREE_TIMES = async (count) => {
     if (count < 3) throw new Error('Oh Noes!');
@@ -18,7 +18,7 @@ describe('ResilientConnectionSource', () => {
     it('should add registered listeners to underlying connection source', async () => {
       let events = 0;
       const stubConnectionSource = new StubConnectionSource();
-      const connectionSource = new ResilientConnectionSource({ connectionSource: stubConnectionSource });
+      const connectionSource = new RecoveringConnectionSource({ connectionSource: stubConnectionSource });
       connectionSource.registerConnectionListener('close', () =>  events++);
 
       const connection = await connectionSource.getConnection();
@@ -32,7 +32,7 @@ describe('ResilientConnectionSource', () => {
 
     it('should repeatedly attempt to acquire a connection using the default retry strategy', async () => {
       const stubConnectionSource = new StubConnectionSource({ connect: FAIL_THREE_TIMES });
-      const connectionSource = new ResilientConnectionSource({ connectionSource: stubConnectionSource });
+      const connectionSource = new RecoveringConnectionSource({ connectionSource: stubConnectionSource });
 
       const before = Date.now();
       const connection = await connectionSource.getConnection();
@@ -48,7 +48,7 @@ describe('ResilientConnectionSource', () => {
     it('should repeatedly attempt to acquire a connection using a custom retry strategy', async () => {
       const stubConnectionSource = new StubConnectionSource({ connect: FAIL_THREE_TIMES });
       const retryStrategy = () => 100;
-      const connectionSource = new ResilientConnectionSource({ connectionSource: stubConnectionSource, retryStrategy });
+      const connectionSource = new RecoveringConnectionSource({ connectionSource: stubConnectionSource, retryStrategy });
 
       const before = Date.now();
       const connection = await connectionSource.getConnection();
@@ -64,7 +64,7 @@ describe('ResilientConnectionSource', () => {
     it('should give up attempting to acquire a connection when retry stratgey returns a negative', async () => {
       const stubConnectionSource = new StubConnectionSource({ connect: FAIL_FOREVER });
       const retryStrategy = () => -1;
-      const connectionSource = new ResilientConnectionSource({ connectionSource: stubConnectionSource, retryStrategy });
+      const connectionSource = new RecoveringConnectionSource({ connectionSource: stubConnectionSource, retryStrategy });
 
       await rejects(() => connectionSource.getConnection(), /Oh Noes/);
     });
@@ -76,7 +76,7 @@ describe('ResilientConnectionSource', () => {
       const stubConnectionSource = new StubConnectionSource({ connect: FAIL_FOREVER });
 
       const retryStrategy = () => 100;
-      const connectionSource = new ResilientConnectionSource({ connectionSource: stubConnectionSource, retryStrategy });
+      const connectionSource = new RecoveringConnectionSource({ connectionSource: stubConnectionSource, retryStrategy });
 
       setTimeout(() => connectionSource.close(), 200);
       await rejects(() => connectionSource.getConnection(), /The connection source is closed/);
@@ -84,7 +84,7 @@ describe('ResilientConnectionSource', () => {
 
     it('should reject attempts to get a connection when closed', async () => {
       const stubConnectionSource = new StubConnectionSource();
-      const connectionSource = new ResilientConnectionSource({ connectionSource: stubConnectionSource });
+      const connectionSource = new RecoveringConnectionSource({ connectionSource: stubConnectionSource });
 
       await connectionSource.close();
 
@@ -93,7 +93,7 @@ describe('ResilientConnectionSource', () => {
 
     it('should tolerate repeated closures', async () => {
       const stubConnectionSource = new StubConnectionSource({ connect: FAIL_FOREVER });
-      const connectionSource = new ResilientConnectionSource({ connectionSource: stubConnectionSource });
+      const connectionSource = new RecoveringConnectionSource({ connectionSource: stubConnectionSource });
       await connectionSource.close();
       await connectionSource.close();
     });
