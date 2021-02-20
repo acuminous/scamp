@@ -1,24 +1,24 @@
-const { strictEqual: eq, rejects } = require('assert');
-const { describe, it } = require('zunit');
-const { EventEmitter } = require('events');
-const { StickyChannelSource, ScampEvent } = require('../..');
+const { ok, strictEqual: eq, notStrictEqual: neq, rejects } = require('assert');
+const { StickyChannelSource, StubChannelSource, ScampEvent, ChannelType } = require('../..');
 
 describe('StickyChannelSource', () => {
 
-  describe('registerChannelListener', () => {
+  [{ type: ChannelType.REGULAR, method: 'getChannel' }, { type: ChannelType.CONFIRM, method: 'getConfirmChannel' }].forEach(({ type, method }) => {
 
-    it('should add registered listeners to underlying channel source', async() => {
-      const stubChannelSource = new StubChannelSource();
-      const channelSource = new StickyChannelSource({ channelSource: stubChannelSource });
+    describe('registerChannelListener', () => {
 
-      channelSource.registerChannelListener('close', () =>  {});
+      it('should add registered listeners to underlying channel source', async() => {
+        let events = 0;
+        const stubChannelSource = new StubChannelSource();
+        const channelSource = new StickyChannelSource({ channelSource: stubChannelSource });
+        channelSource.registerChannelListener('close', () => events++ );
 
-      eq(stubChannelSource.channelListeners.length, 1);
-      eq(stubChannelSource.channelListeners[0].event, 'close');
+        const channel = await channelSource[method]();
+        channel.emit('close');
+
+        eq(events, 1);
+      });
     });
-  });
-
-  [{ type: 'regular', method: 'getChannel' }, { type: 'confirm', method: 'getConfirmChannel' }].forEach(({ type, method }) => {
 
     describe(`getChannel (${type})`, () => {
 
@@ -28,7 +28,8 @@ describe('StickyChannelSource', () => {
 
         const channel = await channelSource[method]();
 
-        eq(channel.x_scamp.id, 1);
+        ok(channel);
+
         eq(channel.x_scamp.type, type);
       });
 
@@ -39,8 +40,9 @@ describe('StickyChannelSource', () => {
         const channel1 = await channelSource[method]();
         const channel2 = await channelSource[method]();
 
-        eq(channel1.x_scamp.id, 1);
-        eq(channel2.x_scamp.id, 1);
+        ok(channel1);
+        ok(channel2);
+        eq(channel1, channel2);
       });
 
       it(`should acquire a new ${type} channel after loss`, async () => {
@@ -53,56 +55,49 @@ describe('StickyChannelSource', () => {
 
         const channel2 = await channelSource[method]();
 
-        eq(channel1.x_scamp.id, 1);
-        eq(channel2.x_scamp.id, 2);
+        ok(channel1);
+        ok(channel2);
+        neq(channel1, channel2);
       });
 
       it(`should synchronise new ${type} channel acquisition`, async () => {
         const stubChannelSource = new StubChannelSource();
         const channelSource = new StickyChannelSource({ channelSource: stubChannelSource });
 
-        const channel1 = await channelSource[method]();
-        eq(channel1.x_scamp.id, 1);
-        channel1.emit(ScampEvent.LOST);
-
-        const connections = await Promise.all(new Array(100).fill().map(() => channelSource[method]()));
-        connections.forEach(channel2 => {
-          eq(channel2.x_scamp.id, 2);
+        const channels = await Promise.all(new Array(100).fill().map(() => channelSource[method]()));
+        channels.reduce((channel1, channel2) => {
+          ok(channel1);
+          ok(channel2);
+          eq(channel1, channel2);
+          return channel1;
         });
+      });
+    });
+
+    describe(`close ${type}`, async () => {
+
+      it(`should close cached ${type} channels`, async () => {
+        const stubChannelSource = new StubChannelSource();
+        const channelSource = new StickyChannelSource({ channelSource: stubChannelSource });
+
+        const channel = await channelSource[method]();
+
+        await channelSource.close();
+
+        eq(channel.closed, true);
+      });
+
+      it(`should reject attempts to get a ${type} channel when closed`, async () => {
+        const stubChannelSource = new StubChannelSource();
+        const channelSource = new StickyChannelSource({ channelSource: stubChannelSource });
+        await channelSource.close();
+
+        await rejects(() => channelSource[method](), /The channel source is closed/);
       });
     });
   });
 
   describe('close', async () => {
-
-    it('should closes cached channels', async () => {
-      const stubChannelSource = new StubChannelSource();
-      const channelSource = new StickyChannelSource({ channelSource: stubChannelSource });
-
-      const channel1 = await channelSource.getChannel();
-      const channel2 = await channelSource.getConfirmChannel();
-
-      await channelSource.close();
-
-      eq(channel1.x_scamp.open, false);
-      eq(channel2.x_scamp.open, false);
-    });
-
-    it('should reject attempts to get a regular channel when closed', async () => {
-      const stubChannelSource = new StubChannelSource();
-      const channelSource = new StickyChannelSource({ channelSource: stubChannelSource });
-      await channelSource.close();
-
-      await rejects(() => channelSource.getChannel(), /The channel source is closed/);
-    });
-
-    it('should reject attempts to get a confirm channel when closed', async () => {
-      const stubChannelSource = new StubChannelSource();
-      const channelSource = new StickyChannelSource({ channelSource: stubChannelSource });
-      await channelSource.close();
-
-      await rejects(() => channelSource.getConfirmChannel(), /The channel source is closed/);
-    });
 
     it('should tolerate repeated closures', async () => {
       const stubChannelSource = new StubChannelSource();
@@ -112,24 +107,3 @@ describe('StickyChannelSource', () => {
     });
   });
 });
-
-class StubChannelSource {
-  constructor() {
-    this.id = 1;
-    this.channelListeners = [];
-  }
-
-  registerChannelListener(event, listener) {
-    this.channelListeners.push({ event, listener });
-  }
-
-  async getChannel() {
-    const x_scamp = { id: this.id++, type: 'regular', open: true };
-    return Object.assign(new EventEmitter(), { x_scamp }, { close: async () => x_scamp.open = false });
-  }
-
-  async getConfirmChannel() {
-    const x_scamp = { id: this.id++, type: 'confirm', open: true };
-    return Object.assign(new EventEmitter(), { x_scamp }, { close: async () => x_scamp.open = false });
-  }
-}

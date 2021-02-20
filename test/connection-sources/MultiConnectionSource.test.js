@@ -1,5 +1,4 @@
 const { strictEqual: eq, rejects } = require('assert');
-const { describe, it } = require('zunit');
 const { MultiConnectionSource, StubConnectionSource } = require('../..');
 
 describe('MultiConnectionSource', () => {
@@ -7,19 +6,21 @@ describe('MultiConnectionSource', () => {
   describe('registerConnectionListener', () => {
 
     it('should add registered listeners to all underlying connection sources', async() => {
+      let events = 0;
       const connectionSources = [
         new StubConnectionSource(),
         new StubConnectionSource(),
         new StubConnectionSource(),
       ];
       const connectionSource = new MultiConnectionSource({ connectionSources });
+      connectionSource.registerConnectionListener('close', () =>  events++);
 
-      connectionSource.registerConnectionListener('close', () =>  {});
+      await Promise.all(new Array(connectionSources.length).fill().map(async () => {
+        const connection = await connectionSource.getConnection();
+        await connection.close();
+      }));
 
-      connectionSources.forEach(stubConnectionSource => {
-        eq(stubConnectionSource.connectionListeners.length, 1);
-        eq(stubConnectionSource.connectionListeners[0].event, 'close');
-      });
+      eq(events, 3);
     });
   });
 
@@ -27,9 +28,9 @@ describe('MultiConnectionSource', () => {
 
     it('should acquire connections from each source in turn', async () => {
       const connectionSources = [
-        new StubConnectionSource({ id: 1 }),
-        new StubConnectionSource({ id: 2 }),
-        new StubConnectionSource({ id: 3 }),
+        new StubConnectionSource({ baseId: '1' }),
+        new StubConnectionSource({ baseId: '2' }),
+        new StubConnectionSource({ baseId: '3' }),
       ];
       const connectionSource = new MultiConnectionSource({ connectionSources });
       const connection1 = await connectionSource.getConnection();

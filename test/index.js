@@ -1,5 +1,7 @@
 const { EOL } = require('os');
-const { Harness, Suite, SpecReporter } = require('zunit');
+const { Harness, Suite, SpecReporter, syntax } = require('zunit');
+
+Object.entries(syntax).forEach(([keyword, fn]) => global[keyword] = fn);
 
 const suite = new Suite('Scamp').discover();
 const harness = new Harness(suite);

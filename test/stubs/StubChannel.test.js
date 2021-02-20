@@ -1,6 +1,5 @@
 const { strictEqual: eq, rejects } = require('assert');
 const { StubChannel } = require('../..');
-const { describe, it } = require('zunit');
 
 describe('StubChannel', () => {
 

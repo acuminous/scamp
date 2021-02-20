@@ -1,26 +1,24 @@
 const { strictEqual: eq, rejects } = require('assert');
-const { beforeEach, describe, it } = require('zunit');
-const { StubAmqplib, AmqplibConnectionSource, ConnectionDecorator, Counter, ScampEvent } = require('../..');
+const { StubAmqplib, AmqplibConnectionSource, Counter, ScampEvent } = require('../..');
 
 describe('AmqplibConnectionSource', () => {
 
   let amqplib;
-  let decorator;
 
   beforeEach(() => {
     amqplib = new StubAmqplib();
-    decorator = new ConnectionDecorator({ counter: new Counter() });
+    Counter.getInstance().clear();
   });
 
   describe('registerConnectionListener', () => {
 
     it('should add registered listeners to new connections', async() => {
       let events = 0;
-      const connectionSource = new AmqplibConnectionSource({ amqplib, decorator });
+      const connectionSource = new AmqplibConnectionSource({ amqplib });
 
       connectionSource.registerConnectionListener('close', () => events++ );
       const connection = await connectionSource.getConnection();
-      connection.emit('close');
+      await connection.close();
 
       eq(events, 1);
     });
@@ -29,28 +27,28 @@ describe('AmqplibConnectionSource', () => {
   describe('getConnection', () => {
 
     it('should decorate connection with x_scamp.id using default parameters', async () => {
-      const connectionSource = new AmqplibConnectionSource({ amqplib, decorator });
+      const connectionSource = new AmqplibConnectionSource({ amqplib });
 
       const connection = await connectionSource.getConnection();
       eq(connection.x_scamp.id, 'amqp://guest@localhost:5672#1');
     });
 
     it('should decorate connection with x_scamp.id using explicit parameters', async () => {
-      const connectionSource = new AmqplibConnectionSource({ amqplib, decorator, connectionOptions: { protocol: 'amqps', hostname: 'foo', username: 'bar', port: 123, vhost: 'baz' } });
+      const connectionSource = new AmqplibConnectionSource({ amqplib, connectionOptions: { protocol: 'amqps', hostname: 'foo', username: 'bar', port: 123, vhost: 'baz' } });
 
       const connection = await connectionSource.getConnection();
       eq(connection.x_scamp.id, 'amqps://bar@foo:123/baz#1');
     });
 
     it('should decorate connection with x_scamp.id using default vhost', async () => {
-      const connectionSource = new AmqplibConnectionSource({ amqplib, decorator, connectionOptions: { vhost: '/' } });
+      const connectionSource = new AmqplibConnectionSource({ amqplib, connectionOptions: { vhost: '/' } });
 
       const connection = await connectionSource.getConnection();
       eq(connection.x_scamp.id, 'amqp://guest@localhost:5672/#1');
     });
 
     it('should assign incremental x_scamp.id', async () => {
-      const connectionSource = new AmqplibConnectionSource({ amqplib, decorator });
+      const connectionSource = new AmqplibConnectionSource({ amqplib });
 
       const connection1 = await connectionSource.getConnection();
       eq(connection1.x_scamp.id, 'amqp://guest@localhost:5672#1');
@@ -63,7 +61,7 @@ describe('AmqplibConnectionSource', () => {
   describe('Lost Connections', () => {
 
     it('should emit a lost event on connection close', async () => {
-      const connectionSource = new AmqplibConnectionSource({ amqplib, decorator });
+      const connectionSource = new AmqplibConnectionSource({ amqplib });
       const connection = await connectionSource.getConnection();
       let events = 0;
 
@@ -76,7 +74,7 @@ describe('AmqplibConnectionSource', () => {
 
     it('should emit a lost event on connection error', async () => {
       let events = 0;
-      const connectionSource = new AmqplibConnectionSource({ amqplib, decorator });
+      const connectionSource = new AmqplibConnectionSource({ amqplib });
       const connection = await connectionSource.getConnection();
       connection.on(ScampEvent.LOST, () => events++);
 
@@ -87,7 +85,7 @@ describe('AmqplibConnectionSource', () => {
 
     it('should only emit one lost event', async () => {
       let events = 0;
-      const connectionSource = new AmqplibConnectionSource({ amqplib, decorator });
+      const connectionSource = new AmqplibConnectionSource({ amqplib });
       const connection = await connectionSource.getConnection();
       connection.on(ScampEvent.LOST, () => events++);
       connection.on('error', () => {});
@@ -102,7 +100,7 @@ describe('AmqplibConnectionSource', () => {
 
     it('should not emit a lost event when the connection source is closed', async () => {
       let events = 0;
-      const connectionSource = new AmqplibConnectionSource({ amqplib, decorator });
+      const connectionSource = new AmqplibConnectionSource({ amqplib });
       const connection = await connectionSource.getConnection();
       connection.on(ScampEvent.LOST, () => events++);
       await connectionSource.close();
@@ -118,7 +116,7 @@ describe('AmqplibConnectionSource', () => {
     it('should support custom connection event listeners', async () => {
       let events = 0;
 
-      const connectionSource = new AmqplibConnectionSource({ amqplib, decorator });
+      const connectionSource = new AmqplibConnectionSource({ amqplib });
       connectionSource.registerConnectionListener('close', () => events++);
       const connection = await connectionSource.getConnection();
 
@@ -131,14 +129,14 @@ describe('AmqplibConnectionSource', () => {
   describe('close', async () => {
 
     it('should reject attempts to get a connection when closed', async () => {
-      const connectionSource = new AmqplibConnectionSource({ amqplib, decorator });
+      const connectionSource = new AmqplibConnectionSource({ amqplib });
       await connectionSource.close();
 
       await rejects(() => connectionSource.getConnection(), /The connection source is closed/);
     });
 
     it('should tolerate repeated closures', async () => {
-      const connectionSource = new AmqplibConnectionSource({ amqplib, decorator });
+      const connectionSource = new AmqplibConnectionSource({ amqplib });
       await connectionSource.close();
       await connectionSource.close();
     });

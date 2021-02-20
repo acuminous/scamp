@@ -1,5 +1,4 @@
 const { strictEqual: eq, notStrictEqual: neq, rejects, ok } = require('assert');
-const { describe, it } = require('zunit');
 const { StickyConnectionSource, StubConnectionSource, ScampEvent } = require('../..');
 
 describe('StickyConnectionSource', () => {
@@ -7,13 +6,15 @@ describe('StickyConnectionSource', () => {
   describe('registerConnectionListener', () => {
 
     it('should add registered listeners to underlying connection source', async() => {
+      let events = 0;
       const stubConnectionSource = new StubConnectionSource();
       const connectionSource = new StickyConnectionSource({ connectionSource: stubConnectionSource });
+      connectionSource.registerConnectionListener('close', () =>  events++);
 
-      connectionSource.registerConnectionListener('close', () =>  {});
+      const connection = await connectionSource.getConnection();
+      connection.close();
 
-      eq(stubConnectionSource.connectionListeners.length, 1);
-      eq(stubConnectionSource.connectionListeners[0].event, 'close');
+      eq(events, 1);
     });
   });
 
