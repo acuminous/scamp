@@ -2,10 +2,10 @@
 An advance Node.js RabbitMQ client from the author of [Rascal](https://github.com/guidesmiths/rascal). It is in the early stages of development, has an unstable API and is **not production ready**.
 
 ## Connection Topologies
-Scamp allows you to choose your connection topology by providing a range of pluggable connection and channel sources. For example...
+Scamp allows you to choose your connection topology by providing a range of pluggable connection and channel sources, allowing you to optimise your application for performance and reliability. For example...
 
+#### A reliable connection with a reliable channel
 
-#### Dedicated connection with a dedicated channel
       ┌─────────────────────────┐                                            ┌─────────────────────────┐
       │                         │                 Connection                 │                         │
       │                         ├────────────────────────────────────────────┤                         │
@@ -14,28 +14,28 @@ Scamp allows you to choose your connection topology by providing a range of plug
       │                         │                                            │                         │
       │                         ├────────────────────────────────────────────┤                         │
       │                         │                                            │                         │
-      │                         │                                            │                         │
       └─────────────────────────┘                                            └─────────────────────────┘
 ```js
 const amqplib = require('amqplib');
-const { DedicatedConnectionSource, ReliableChannelSource } = require('scamp');
+const { ReliableConnectionSource, ReliableChannelSource } = require('scamp');
+
 const connectionOptions = { hostname: 'rabbitmq.example.com' };
 const socketOptions = { timeout: 10000 };
-const connectionSource = new DedicatedConnectionSource({ amqplib, connectionOptions, socketOptions });
+const connectionSource = new ReliableConnectionSource({ amqplib, connectionOptions, socketOptions });
 const channelSource = new ReliableChannelSource({ connectionSource });
 
 const channel = await channelSource.getChannel();
 ```
+The connection and channel will automatically recover from errors. The channel source will consistently return the same channel once it has been acquired (assuming it was not replaced due to a channel error).
 
-#### Dedicated connection with a channel pool
+#### A reliable connection with multiple reliable channels
+
       ┌─────────────────────────┐                                            ┌─────────────────────────┐
       │                         │                 Connection                 │                         │
       │                         ├────────────────────────────────────────────┤                         │
       │                         │                                            │                         │
       │                         ╠═════════════════Channel 1══════════════════╣                         │
-      │                         │                                            │                         │
       │        Producer         │                                            │      Virtual Host       │
-      │                         │                                            │                         │
       │                         ╠═════════════════Channel 2══════════════════╣                         │
       │                         │                                            │                         │
       │                         ├────────────────────────────────────────────┤                         │
@@ -43,16 +43,22 @@ const channel = await channelSource.getChannel();
       └─────────────────────────┘                                            └─────────────────────────┘
 ```js
 const amqplib = require('amqplib');
-const { DedicatedConnectionSource, PooledChannelSource } = require('scamp');
+const { ReliableConnectionSource, RotatingChannelSource } = require('scamp');
 const connectionOptions = { hostname: 'rabbitmq.example.com' };
 const socketOptions = { timeout: 10000 };
-const connectionSource = new DedicatedConnectionSource({ amqplib, connectionOptions, socketOptions });
-const channelSource = new PooledChannelSource({ size: 2, connectionSource });
+
+const connectionSource = new ReliableConnectionSource({ amqplib, connectionOptions, socketOptions });
+const rotatingChannelSource = new RotatingChannelSource({ channelSources: [
+  new ReliableChannelSource({ connectionSource }),
+  new ReliableChannelSource({ connectionSource }),
+]});
 
 const channel = await channelSource.getChannel();
 ```
+The connection and channels will automatically recover from errors. Repeatly calling `channelSource.getChannel()` will cycle through the available channel sources, potentially providing better throughput than if using a single channel. A channel source will consistently return the same channel once it has been acquired (assuming it was not replaced due to a channel error).
 
-#### Connection pool with dedicated channels
+#### Multiple reliable connections, each with a single reliable channel
+
       ┌─────────────────────────┐                Connection 1                ┌─────────────────────────┐
       │                         ├────────────────────────────────────────────┤                         │
       │                         │                                            │                         │
@@ -69,19 +75,56 @@ const channel = await channelSource.getChannel();
       └─────────────────────────┘                                            └─────────────────────────┘
 ```js
 const amqplib = require('amqplib');
-const { DedicatedConnectionSource, ReliableChannelSource, RotatingConnectionSource } = require('scamp');
+const { ReliableConnectionSource, ReliableChannelSource, RotatingConnectionSource } = require('scamp');
 const connectionOptions = { hostname: 'rabbitmq.example.com' };
 const socketOptions = { timeout: 10000 };
-const channelSources = [
-  new ReliableChannelSource({ connectionSource: new DedicatedConnectionSource({ amqplib, connectionOptions, socketOptions }) }),
-  new ReliableChannelSource({ connectionSource: new DedicatedConnectionSource({ amqplib, connectionOptions, socketOptions }) }),
-];
-const channelSource = new RotatingConnectionSource({ channelSources });
+
+const connectionSource1 = new ReliableConnectionSource({ amqplib, connectionOptions, socketOptions });
+const connectionSource2 = new ReliableConnectionSource({ amqplib, connectionOptions, socketOptions });
+const channelSource = new RotatingConnectionSource({ channelSources: [
+  new ReliableChannelSource({ connectionSource: connectionSource1 }),
+  new ReliableChannelSource({ connectionSource: connectionSource2 }),
+]});
 
 const channel = await channelSource.getChannel();
 ```
+The connection and channels will automatically recover from errors. Repeatly calling `channelSource.getChannel()` will cycle through the available channel sources, which are backed by their respective connection sources, potentially providing better throughput than if using a single connection.
 
-#### Dedicated active/passive connection with dedicated channel
+#### Dedicated Producer / Consumer connections, each with a single reliable channel
+
+      ┌─────────────────────────┐            Producer Connection             ┌─────────────────────────┐
+      │                         ├────────────────────────────────────────────┤                         │
+      │                         │                                            │                         │
+      │                         ╠═════════════Producer Channel═══════════════╣                         │
+      │                         │                                            │                         │
+      │                         ├────────────────────────────────────────────┤                         │
+      │   Producer / Consumer   │                                            │      Virtual Host       │
+      │                         │            Consumer Connection             │                         │
+      │                         ├────────────────────────────────────────────┤                         │
+      │                         │                                            │                         │
+      │                         ╠═════════════Consumer Channel═══════════════╣                         │
+      │                         │                                            │                         │
+      │                         ├────────────────────────────────────────────┤                         │
+      └─────────────────────────┘                                            └─────────────────────────┘
+```js
+const amqplib = require('amqplib');
+const { ReliableConnectionSource, ReliableChannelSource, RotatingConnectionSource, ScampEvent } = require('scamp');
+const connectionOptions = { hostname: 'rabbitmq.example.com' };
+const socketOptions = { timeout: 10000 };
+
+const producerConnectionSource = new ReliableConnectionSource({ amqplib, connectionOptions, socketOptions });
+const producerChannelSource = new ReliableChannelSource({ connectionSource: producerConnectionSource });
+
+const consumerConnectionSource = new ReliableConnectionSource({ amqplib, connectionOptions, socketOptions });
+const consumerChannelSource = new ReliableChannelSource({ connectionSource: consumerConnectionSource });
+
+const producerChannel = await producerChannelSource.getChannel();
+const consumerChannel = await consumerChannelSource.getChannel();
+```
+The connection and channels will automatically recover from errors, however you will need to re-consume. Each channel source will consistently return the same channel once it has been acquired (assuming it was not replaced due to a channel error).
+
+
+#### Active/passive connections, each with a single reliable channel
 
       ┌─────────────────────────┐                Connection 1                ┌─────────────────────────┐
       │                         ├────────────────────────────────────────────┤                         │
@@ -99,7 +142,7 @@ const channel = await channelSource.getChannel();
       └─────────────────────────┘                                            └─────────────────────────┘
 ```js
 const amqplib = require('amqplib');
-const { DedicatedConnectionSource, ReliableChannelSource } = require('scamp');
+const { HighAvailabilityConnectionSource, ReliableChannelSource } = require('scamp');
 const optionSets = [
   {
     connectionOptions: { hostname: 'rabbitmq-primary.example.com' },
@@ -115,7 +158,7 @@ const channelSource = new ReliableChannelSource({ connectionSource });
 
 const channel = await channelSource.getChannel();
 ```
-
+The connection and channels will automatically recover from errors. If a connection error occurs, the connection source will rotate through the available vhosts until a connection is successfully restablished, delaying each attempt by an exponentially increasing amount of time.
 
 ### Broker
 The broker is a container for one or more virtual hosts and repository for common config such as encryption profiles and content parsers.
